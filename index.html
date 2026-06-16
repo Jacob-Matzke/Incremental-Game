@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Stardust Ascendant</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Animated starfield background -->
+  <canvas id="starfield"></canvas>
+
+  <div id="app">
+    <!-- Top resource bar -->
+    <header id="resourcebar">
+      <div class="brand">
+        <span class="logo">✦</span>
+        <span class="title">Stardust Ascendant</span>
+      </div>
+      <div id="resources"></div>
+    </header>
+
+    <!-- Tab navigation -->
+    <nav id="tabs"></nav>
+
+    <!-- Main content panels -->
+    <main id="content">
+      <section class="panel" data-tab="cosmos" id="tab-cosmos"></section>
+      <section class="panel" data-tab="collapse" id="tab-collapse"></section>
+      <section class="panel" data-tab="fusion" id="tab-fusion"></section>
+      <section class="panel" data-tab="automation" id="tab-automation"></section>
+      <section class="panel" data-tab="achievements" id="tab-achievements"></section>
+      <section class="panel" data-tab="stats" id="tab-stats"></section>
+      <section class="panel" data-tab="settings" id="tab-settings"></section>
+    </main>
+  </div>
+
+  <!-- Toast / notification area -->
+  <div id="toasts"></div>
+
+  <!-- Scripts: classic scripts sharing a global G namespace (works over file://) -->
+  <script src="js/format.js"></script>
+  <script src="js/content.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

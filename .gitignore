@@ -1,0 +1,15 @@
+# Claude Code local files
+.claude/
+
+# OS / editor cruft
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+*~
+
+# Logs
+*.log
+
+# Local saves / scratch
+*.local
