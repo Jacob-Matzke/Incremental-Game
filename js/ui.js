@@ -872,6 +872,16 @@
   // Other modules push reactive headlines here.
   G.news = msg => { if (newsQueue.length < 6) newsQueue.push(msg); };
 
+  /* ---------------- prestige flash ---------------- */
+  G.flash = function (color) {
+    const el = document.getElementById("flash");
+    if (!el) return;
+    el.style.background = `radial-gradient(circle at 50% 45%, transparent 35%, ${color} 130%)`;
+    el.classList.remove("go");
+    void el.offsetWidth;   // restart the animation
+    el.classList.add("go");
+  };
+
   /* ---------------- toasts ---------------- */
   G.toast = function (title, body) {
     const wrap = document.getElementById("toasts");

@@ -294,6 +294,7 @@
     recalc();
     if (!silent) {
       G.toast("💫 Collapse!", "Gained " + G.fmtInt(gain) + " Starlight.");
+      if (G.flash) G.flash("rgba(183,139,255,0.45)");
       G.ui.renderTab("collapse");
       G.ui.renderTab("cosmos");
     }
@@ -342,6 +343,7 @@
     recalc();
     if (!silent) {
       G.toast("🌫 Condense!", "Gained " + G.fmtInt(gain) + " Nebulae. A new cosmos awaits.");
+      if (G.flash) G.flash("rgba(255,140,200,0.5)");
       G.ui.rebuildAll();
     }
     return true;

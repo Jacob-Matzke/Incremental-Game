@@ -36,6 +36,11 @@ html, body {
   display: block;
 }
 
+/* prestige flash (a brief edge-vignette pulse for satisfying feedback) */
+#flash { position: fixed; inset: 0; z-index: 15; pointer-events: none; opacity: 0; }
+#flash.go { animation: flashPulse 0.7s ease forwards; }
+@keyframes flashPulse { 0% { opacity: 0.55; } 100% { opacity: 0; } }
+
 #app {
   position: relative;
   z-index: 1;

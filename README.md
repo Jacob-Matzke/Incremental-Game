@@ -25,10 +25,25 @@ and progress autosaves to your browser's `localStorage` every 15 seconds.
 - **Fusion (Loop B):** Unlocked in the tree. Your *purchased* generators fuel
   fusion, producing **Stellar Energy**, which multiplies all Stardust production
   and **persists through Collapses** — so the two loops feed each other.
-- **Achievements:** ~18 of them, each granting a permanent production bonus. A
+- **Achievements:** ~22 of them, each granting a permanent production bonus. A
   few unlock automations *early* if you strive for them.
 - **Automation:** Auto-buyers per generator + Auto-Collapse, unlocked via the
-  tree or achievements.
+  tree, achievements, or milestones.
+
+### Engagement & retention systems
+- **Cosmic Anomalies:** golden-cookie-style glowing orbs periodically appear;
+  click them for a random reward — timed production buffs (Frenzy ×7, Bloom ×3),
+  an instant minute of Stardust, a ~90s time-skip, or bonus Starlight. Toggle in
+  Settings.
+- **Milestones:** permanent bonuses just for prestiging more — Collapse counts
+  (3…1000) and Condense counts (1…100) hand out production multipliers, free
+  auto-buyers, free Auto-Collapse, and production-exponent bonuses. Shown on the
+  Collapse/Nebula tabs.
+- **Trials:** opt-in challenge runs (a handicap — costlier generators, reduced
+  production, or a lower exponent) for a permanent reward when you reach the goal.
+- **News ticker, objective hint, hotkeys:** scrolling flavor/headlines, a
+  context-aware "next step" guide, and shortcuts (1–9 tabs, C Collapse, X
+  Condense, M cycle Buy amount).
 
 ### Saving
 Settings tab → Export/Import save strings, copy to clipboard, or download/upload
@@ -43,10 +58,11 @@ Data-driven and modular. Adding content rarely means touching engine code.
 | `index.html` | Layout shell (resource bar, tab panels, canvas). |
 | `styles.css` | Cosmic theme + all component styles. |
 | `js/format.js` | Big-number formatting (standard & scientific). |
-| `js/content.js` | **All game content:** generators, the Starlight tree, achievements, automations. Edit here to balance or add. |
-| `js/game.js` | State, save/load/import/export, offline progress, the production tick, prestige, achievements. |
-| `js/ui.js` | Rendering + interaction. Builds each tab once, refreshes numbers each frame. |
-| `js/main.js` | Boot, animated starfield, main loop, autosave. |
+| `js/content.js` | **All game content:** generators, the Starlight & Nebula trees, achievements, automations, milestones, trials. Edit here to balance or add. |
+| `js/game.js` | State, save/load/import/export, offline progress, the production tick, both prestige layers, achievements, milestones, trials. |
+| `js/events.js` | Cosmic Anomalies — spawn/collect logic, buffs. |
+| `js/ui.js` | Rendering + interaction (tabs, trees, milestones, trials, news ticker, objective). Builds each tab once, refreshes numbers each frame. |
+| `js/main.js` | Boot, animated starfield, main loop, autosave, keyboard shortcuts. |
 
 ### Extending it
 - **New generator:** add an entry to `G.GENERATORS` in `content.js`.
