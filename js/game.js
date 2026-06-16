@@ -199,7 +199,7 @@
 
     recalc();
     if (!silent) {
-      G.toast("💫 Collapse!", "Gained " + G.fmt(gain) + " Starlight.");
+      G.toast("💫 Collapse!", "Gained " + G.fmtInt(gain) + " Starlight.");
       G.ui.renderTab("collapse");
       G.ui.renderTab("cosmos");
     }

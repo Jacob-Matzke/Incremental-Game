@@ -218,7 +218,12 @@ html, body {
 .btn:hover:not(:disabled) { filter: brightness(1.25); box-shadow: var(--glow); }
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+/* "can't afford" look — visual only, stays clickable so the click always fires */
+.btn.cant { opacity: 0.4; cursor: not-allowed; }
+.btn.cant:hover { filter: none; box-shadow: none; }
 .btn.small { padding: 5px 10px; font-size: 12px; }
+.buy-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1.2; }
+.buy-btn .buy-cost { font-size: 11px; opacity: 0.8; }
 .btn.violet { background: linear-gradient(180deg, rgba(183,139,255,0.18), rgba(183,139,255,0.06)); border-color: rgba(183,139,255,0.5); }
 .btn.gold { background: linear-gradient(180deg, rgba(255,212,121,0.18), rgba(255,212,121,0.06)); border-color: rgba(255,212,121,0.5); }
 .btn.green { background: linear-gradient(180deg, rgba(108,229,168,0.18), rgba(108,229,168,0.06)); border-color: rgba(108,229,168,0.5); }
@@ -263,6 +268,36 @@ html, body {
 .node .node-desc { font-size: 12px; color: var(--text-dim); line-height: 1.4; min-height: 34px; }
 .node .node-cost { font-size: 12px; font-weight: 700; margin-top: 8px; }
 .node .node-owned-tag { font-size: 11px; color: var(--good); font-weight: 700; margin-top: 8px; }
+.node.selected { outline: 2px dashed var(--accent-3); outline-offset: 2px; }
+.node.selected::after {
+  content: "✓ planned"; position: absolute; top: 6px; right: 8px;
+  font-size: 10px; font-weight: 700; color: var(--accent-3);
+}
+
+/* ---------- Group-buy plan bar ---------- */
+.groupbuy { display: none; margin: 0 0 18px; }
+.groupbuy.show {
+  display: block;
+  background: var(--panel);
+  border: 1px solid var(--accent-3);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 0 14px rgba(255, 212, 121, 0.18);
+}
+.groupbuy .gb-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+.groupbuy .gb-title { font-weight: 700; font-size: 13px; color: var(--accent-3); }
+.groupbuy .gb-total { font-weight: 700; font-size: 14px; font-variant-numeric: tabular-nums; }
+.groupbuy .gb-items { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.groupbuy .gb-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255, 212, 121, 0.1);
+  border: 1px solid rgba(255, 212, 121, 0.4);
+  color: var(--text); border-radius: 20px; padding: 4px 10px;
+  font-size: 12px; cursor: pointer; transition: all 0.12s;
+}
+.groupbuy .gb-chip:hover { background: rgba(255, 122, 138, 0.15); border-color: var(--bad); }
+.groupbuy .gb-chip .gb-x { font-size: 10px; opacity: 0.7; }
+.groupbuy .gb-actions { display: flex; gap: 8px; }
 
 /* ---------- Automation ---------- */
 .auto-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }

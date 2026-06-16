@@ -10,6 +10,9 @@
   let builtTabs = new Set();        // tabs whose structure exists
   let lastVisibleKey = "";
 
+  const groupSel = new Set();       // Starlight upgrades queued for group-buy
+  let groupDirty = true;            // group-buy bar needs a structural rebuild
+
   ui.markDirty = name => dirty.add(name);
 
   /* ---------------- tab definitions ---------------- */
@@ -73,10 +76,10 @@
     const el = document.getElementById("resources");
     const showSL = s.collapses > 0 || s.totalStardust >= 1e3;
     const parts = [];
-    parts.push(resHtml("stardust", "Stardust", G.fmt(s.stardust), "+" + G.fmtRate(G.cache.stardustRate)));
-    if (showSL) parts.push(resHtml("starlight", "Starlight", G.fmt(s.starlight),
-      G.canCollapse() ? "+" + G.fmt(G.cache.slGain) + " ready" : ""));
-    if (s.fusionUnlocked) parts.push(resHtml("energy", "Stellar Energy", G.fmt(s.energy),
+    parts.push(resHtml("stardust", "Stardust", G.fmt(s.stardust, "floor"), "+" + G.fmtRate(G.cache.stardustRate)));
+    if (showSL) parts.push(resHtml("starlight", "Starlight", G.fmtInt(s.starlight),
+      G.canCollapse() ? "+" + G.fmtInt(G.cache.slGain) + " ready" : ""));
+    if (s.fusionUnlocked) parts.push(resHtml("energy", "Stellar Energy", G.fmt(s.energy, "floor"),
       "+" + G.fmtRate(G.cache.energyRate) + " · ×" + G.cache.energyMult.toFixed(2)));
     el.innerHTML = parts.join("");
   }
@@ -118,7 +121,10 @@
           <div class="gen-desc"></div>
           <div class="gen-prod"></div>
         </div>
-        <div class="gen-buy"><button class="btn buy-btn"></button></div>`;
+        <div class="gen-buy"><button class="btn buy-btn">
+          <span class="buy-amt"></span><span class="buy-cost"></span></button></div>`;
+      // Resource check happens on click (inside buyGenerator), never via a
+      // disabled attribute — so a click always registers regardless of hover.
       card.querySelector(".buy-btn").onclick = () => {
         if (G.buyGenerator(i)) refreshCosmos();
       };
@@ -152,15 +158,22 @@
       card.querySelector(".gen-prod").textContent =
         g.count > 0 ? "▸ " + G.fmt(flowTotal) + " " + target + "/s total" : "";
 
-      // buy button
+      // buy button — always clickable; affordability is purely visual (.cant)
       const btn = card.querySelector(".buy-btn");
       let k, cost;
-      if (s.buyMode === "max") { k = G.maxAffordable(i, s.stardust); cost = k > 0 ? bulkCostUI(i, k) : G.genCost(i); }
-      else { k = s.buyMode; cost = bulkCostUI(i, k); }
-      const affordable = s.stardust >= cost && k > 0;
-      btn.disabled = !affordable;
-      btn.innerHTML = `Buy ${s.buyMode === "max" ? "×" + G.fmtInt(Math.max(k, 0)) : "×" + k}<br>
-        <span style="font-size:11px;opacity:.8">${G.fmt(cost)} Stardust</span>`;
+      if (s.buyMode === "max") {
+        // Buy MAX shows at least ×1 (the next purchase you're saving toward),
+        // never a nonsensical ×0.
+        k = Math.max(G.maxAffordable(i, s.stardust), 1);
+        cost = bulkCostUI(i, k);
+      } else {
+        k = s.buyMode;
+        cost = bulkCostUI(i, k);
+      }
+      const affordable = s.stardust >= cost;
+      btn.classList.toggle("cant", !affordable);
+      btn.querySelector(".buy-amt").textContent = "Buy ×" + G.fmtInt(k);
+      btn.querySelector(".buy-cost").textContent = G.fmt(cost, "ceil") + " Stardust";
       card.classList.toggle("affordable", affordable);
     });
   }
@@ -187,6 +200,9 @@
         <button class="btn violet big" id="col-btn">Collapse</button>
       </div>
       <div class="section-title">Starlight Tree</div>
+      <p class="hint" style="margin-top:-6px">Left-click to buy. <b>Right-click</b> a node to add it
+        to a group-buy plan (its prerequisites come along automatically).</p>
+      <div id="groupbuy" class="groupbuy"></div>
       <div class="tree" id="tree"></div>`;
 
     el.querySelector("#col-btn").onclick = () => G.doCollapse(false);
@@ -207,10 +223,91 @@
           <div class="node-desc">${u.desc}</div>
           <div class="node-cost"></div>`;
         node.onclick = () => { if (G.buyUpgrade(u.id)) { refreshCollapse(); ui.markDirty("automation"); } };
+        node.oncontextmenu = (e) => { e.preventDefault(); toggleGroup(u.id); };
         rowEl.appendChild(node);
       });
       tree.appendChild(rowEl);
     });
+    groupDirty = true;
+  }
+
+  /* ---------------- group-buy plan ---------------- */
+  // Add an upgrade (and any not-yet-owned prerequisites) to the plan.
+  function addGroup(id) {
+    const u = G.STAR_UPGRADES.find(x => x.id === id);
+    if (!u || G.state.upgrades[id]) return;
+    groupSel.add(id);
+    (u.req || []).forEach(addGroup);
+  }
+  function toggleGroup(id) {
+    if (G.state.upgrades[id]) return;            // already owned
+    if (groupSel.has(id)) groupSel.delete(id);
+    else addGroup(id);
+    groupDirty = true;
+  }
+  function clearGroup() { groupSel.clear(); groupDirty = true; }
+
+  // Buy everything in the plan, in dependency order, as far as Starlight allows.
+  function buyGroup() {
+    const order = G.STAR_UPGRADES
+      .filter(u => groupSel.has(u.id))
+      .sort((a, b) => a.row - b.row);
+    let bought = true;
+    while (bought) {                              // repeat passes so freshly-bought prereqs unlock the next
+      bought = false;
+      for (const u of order) {
+        if (!G.state.upgrades[u.id] && G.buyUpgrade(u.id)) bought = true;
+      }
+    }
+    for (const id of [...groupSel]) if (G.state.upgrades[id]) groupSel.delete(id);
+    groupDirty = true;
+    refreshCollapse();
+    ui.markDirty("automation");
+  }
+
+  function selectedTotal() {
+    let total = 0;
+    for (const id of groupSel) {
+      const u = G.STAR_UPGRADES.find(x => x.id === id);
+      if (u && !G.state.upgrades[id]) total += u.cost;
+    }
+    return total;
+  }
+
+  function renderGroupBar() {
+    groupDirty = false;
+    const bar = document.getElementById("groupbuy");
+    if (!bar) return;
+    const items = G.STAR_UPGRADES.filter(u => groupSel.has(u.id) && !G.state.upgrades[u.id]);
+    if (!items.length) { bar.classList.remove("show"); bar.innerHTML = ""; return; }
+    bar.classList.add("show");
+    bar.innerHTML = `
+      <div class="gb-head">
+        <span class="gb-title">Group Buy Plan (${items.length})</span>
+        <span class="gb-total" id="gb-total"></span>
+      </div>
+      <div class="gb-items">${items.map(u =>
+        `<span class="gb-chip" data-rm="${u.id}">${u.name} · ${G.fmtInt(u.cost)}<span class="gb-x">✕</span></span>`).join("")}</div>
+      <div class="gb-actions">
+        <button class="btn violet small" id="gb-buy">Buy All</button>
+        <button class="btn ghost small" id="gb-clear">Clear</button>
+      </div>`;
+    bar.querySelectorAll(".gb-chip").forEach(chip =>
+      chip.onclick = () => toggleGroup(chip.dataset.rm));
+    bar.querySelector("#gb-buy").onclick = buyGroup;
+    bar.querySelector("#gb-clear").onclick = clearGroup;
+  }
+
+  function refreshGroupBar() {
+    if (groupDirty) renderGroupBar();
+    const totalEl = document.getElementById("gb-total");
+    if (!totalEl) return;
+    const total = selectedTotal();
+    const ok = G.state.starlight >= total;
+    totalEl.textContent = "Total: " + G.fmtInt(total) + " Starlight";
+    totalEl.style.color = ok ? "var(--good)" : "var(--bad)";
+    const buyBtn = document.getElementById("gb-buy");
+    if (buyBtn) buyBtn.classList.toggle("cant", total <= 0);
   }
 
   function refreshCollapse() {
@@ -221,9 +318,9 @@
     if (reqEl) reqEl.textContent = can
       ? "Ready to collapse"
       : "Requires " + G.fmt(G.COLLAPSE_REQ) + " total Stardust (have " + G.fmt(s.totalStardust) + ")";
-    if (gainEl) gainEl.textContent = "+" + G.fmt(G.cache.slGain) + " Starlight";
+    if (gainEl) gainEl.textContent = "+" + G.fmtInt(G.cache.slGain) + " Starlight";
     const btn = document.getElementById("col-btn");
-    if (btn) btn.disabled = !can;
+    if (btn) btn.classList.toggle("cant", !can);   // visual only; doCollapse() guards
 
     document.querySelectorAll("#tree .node").forEach(node => {
       const u = G.STAR_UPGRADES.find(x => x.id === node.dataset.up);
@@ -233,11 +330,14 @@
       node.classList.toggle("owned", owned);
       node.classList.toggle("locked", !owned && !reqMet);
       node.classList.toggle("affordable", affordable);
+      node.classList.toggle("selected", groupSel.has(u.id) && !owned);
       const costEl = node.querySelector(".node-cost");
       if (owned) costEl.innerHTML = `<span class="node-owned-tag">✓ Purchased</span>`;
       else if (!reqMet) costEl.innerHTML = `<span style="color:var(--text-dim)">Requires: ${u.req.map(r => G.STAR_UPGRADES.find(x => x.id === r).name).join(", ")}</span>`;
-      else costEl.innerHTML = `<span style="color:${affordable ? "var(--accent-2)" : "var(--bad)"}">${G.fmt(u.cost)} Starlight</span>`;
+      else costEl.innerHTML = `<span style="color:${affordable ? "var(--accent-2)" : "var(--bad)"}">${G.fmtInt(u.cost)} Starlight</span>`;
     });
+
+    refreshGroupBar();
   }
 
   // upgrade purchase (kept here for locality with the tree UI)
@@ -369,8 +469,8 @@
       stat("Stardust", G.fmt(s.stardust)) +
       stat("Stardust / sec", G.fmt(G.cache.stardustRate)) +
       stat("Total Stardust", G.fmt(s.totalStardust)) +
-      stat("Starlight", G.fmt(s.starlight)) +
-      stat("Total Starlight", G.fmt(s.totalStarlight)) +
+      stat("Starlight", G.fmtInt(s.starlight)) +
+      stat("Total Starlight", G.fmtInt(s.totalStarlight)) +
       stat("Collapses", G.fmtInt(s.collapses)) +
       stat("Production Multiplier", "×" + G.fmt(G.cache.prodMult)) +
       stat("Stellar Energy", s.fusionUnlocked ? G.fmt(s.energy) : "—") +
