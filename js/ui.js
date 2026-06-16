@@ -25,6 +25,8 @@
     { id: "nebula",       label: "🌫 Nebula",       show: s => s.condenses > 0 || s.totalStarlight >= G.NEBULA_REQ / 2,
                           notif: s => G.canCondense() ? "!" : null },
     { id: "fusion",       label: "⚛ Fusion",       show: s => s.fusionUnlocked },
+    { id: "trials",       label: "🏅 Trials",       show: s => s.totalStarlight > 0 || s.condenses > 0,
+                          notif: s => s.activeTrial ? (G.canCompleteTrial() ? "!" : "…") : null },
     { id: "automation",   label: "🤖 Automation",   show: s => s.collapses > 0 || s.totalStarlight > 0 || s.condenses > 0 },
     { id: "achievements", label: "🏆 Achievements", show: () => true,
                           notif: s => { const n = G.ACHIEVEMENTS.filter(a => s.achievements[a.id]).length; return n + "/" + G.ACHIEVEMENTS.length; } },
@@ -477,6 +479,70 @@
     refreshMilestones("neb-ms", "condense");
   }
 
+  /* ---------------- TRIALS tab (challenges) ---------------- */
+  function buildTrials() {
+    const el = document.getElementById("tab-trials");
+    el.innerHTML = `
+      <div class="section-title">Trials</div>
+      <p class="hint">Opt-in challenge runs. Entering resets your generators (Starlight, Nebulae &
+        milestones stay) and applies a handicap — reach the goal total Stardust to claim a permanent
+        reward. You can't Collapse or Condense while in a Trial.</p>
+      <div id="trial-banner" class="trial-banner" style="display:none">
+        <div class="tb-text"></div>
+        <div class="tb-actions">
+          <button class="btn green small" id="tb-complete">Complete Trial</button>
+          <button class="btn ghost small" id="tb-abandon">Abandon</button>
+        </div>
+      </div>
+      <div class="trial-grid" id="trial-grid"></div>`;
+
+    el.querySelector("#tb-complete").onclick = () => { if (G.completeTrial()) { ui.markDirty("cosmos"); refreshTrials(); } };
+    el.querySelector("#tb-abandon").onclick = () => { if (G.exitTrial()) { ui.markDirty("cosmos"); refreshTrials(); } };
+
+    const grid = el.querySelector("#trial-grid");
+    for (const t of G.TRIALS) {
+      const card = document.createElement("div");
+      card.className = "trial-card";
+      card.dataset.trial = t.id;
+      card.innerHTML = `
+        <div class="trial-head"><span class="trial-name">${t.icon} ${t.name}</span>
+          <span class="trial-status"></span></div>
+        <div class="trial-desc">${t.desc}</div>
+        <div class="trial-goal">Goal: ${G.fmt(t.goal)} total Stardust</div>
+        <div class="trial-reward">🏅 ${t.reward}</div>
+        <button class="btn small trial-enter">Enter Trial</button>`;
+      card.querySelector(".trial-enter").onclick = () => { if (G.enterTrial(t.id)) { ui.markDirty("cosmos"); refreshTrials(); } };
+      grid.appendChild(card);
+    }
+  }
+  function refreshTrials() {
+    const s = G.state;
+    const banner = document.getElementById("trial-banner");
+    const active = s.activeTrial ? G.trialDef(s.activeTrial) : null;
+    if (banner) {
+      banner.style.display = active ? "" : "none";
+      if (active) {
+        const can = G.canCompleteTrial();
+        banner.querySelector(".tb-text").innerHTML =
+          `<b>${active.icon} ${active.name}</b> — reach <b>${G.fmt(active.goal)}</b> total Stardust ` +
+          `(have ${G.fmt(s.totalStardust)})` + (can ? ` <span style="color:var(--good)">— ready!</span>` : "");
+        const cbtn = banner.querySelector("#tb-complete");
+        cbtn.classList.toggle("cant", !can);
+      }
+    }
+    document.querySelectorAll("#trial-grid .trial-card").forEach(card => {
+      const t = G.trialDef(card.dataset.trial);
+      const done = !!s.trialsDone[t.id];
+      const isActive = s.activeTrial === t.id;
+      card.classList.toggle("done", done);
+      card.classList.toggle("active", isActive);
+      card.querySelector(".trial-status").textContent = done ? "✓ Completed" : isActive ? "● In progress" : "";
+      const btn = card.querySelector(".trial-enter");
+      btn.textContent = done ? "✓ Completed" : isActive ? "In progress…" : "Enter Trial";
+      btn.classList.toggle("cant", done || !!s.activeTrial);
+    });
+  }
+
   /* ---------------- FUSION tab ---------------- */
   function buildFusion() {
     const el = document.getElementById("tab-fusion");
@@ -699,12 +765,12 @@
   /* ---------------- dispatch ---------------- */
   const BUILDERS = {
     cosmos: buildCosmos, collapse: buildCollapse, nebula: buildNebula, fusion: buildFusion,
-    automation: buildAutomation, achievements: buildAchievements,
+    trials: buildTrials, automation: buildAutomation, achievements: buildAchievements,
     stats: buildStats, settings: buildSettings,
   };
   const REFRESHERS = {
     cosmos: refreshCosmos, collapse: refreshCollapse, nebula: refreshNebula, fusion: refreshFusion,
-    automation: refreshAutomation, achievements: refreshAchievements,
+    trials: refreshTrials, automation: refreshAutomation, achievements: refreshAchievements,
     stats: refreshStats, settings: refreshSettings,
   };
 

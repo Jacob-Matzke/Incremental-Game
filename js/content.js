@@ -168,4 +168,33 @@
     { type: "condense", req: 50,   name: "Nebula Lord",            mult: 10, desc: "×10 production" },
     { type: "condense", req: 100,  name: "Transcendent Drift",     pow: 0.02, desc: "+0.02 production exponent" },
   ];
+
+  /* ---------------------------------------------------------------
+     TRIALS (challenges) — opt-in constrained runs. Entering resets
+     your generator run (Starlight/Nebula/milestones persist) and
+     applies a handicap; reach the goal total Stardust to claim a
+     permanent reward. Replayability + long-term goals (cf. AD
+     challenges / Synergism corruptions).
+       mCost — generator-cost multiplier (>1 = harder)
+       mProd — global production multiplier (<1 = harder)
+       mPow  — production-exponent multiplier (<1 = harder)
+       rMult — permanent production reward; rSl — permanent Starlight-gain reward
+     --------------------------------------------------------------- */
+  G.TRIALS = [
+    { id: "frugal",  name: "Frugal Cosmos",  icon: "💸", goal: 1e8,
+      desc: "Generators cost ×800 more.", mCost: 800,
+      reward: "×4 all production", rMult: 4 },
+    { id: "dim",     name: "Dim Light",      icon: "🌑", goal: 1e7,
+      desc: "Production exponent ×0.65 — growth crawls.", mPow: 0.65,
+      reward: "×3 all production", rMult: 3 },
+    { id: "gravity", name: "Heavy Gravity",  icon: "🪐", goal: 1e9,
+      desc: "All production ×0.02.", mProd: 0.02,
+      reward: "×6 all production", rMult: 6 },
+    { id: "decay",   name: "Frenetic Decay", icon: "☄", goal: 1e8,
+      desc: "Generators cost ×50 more AND production ×0.3.", mCost: 50, mProd: 0.3,
+      reward: "+150% Starlight gain", rSl: 2.5 },
+    { id: "longdark",name: "The Long Dark",  icon: "🕳", goal: 1e11,
+      desc: "Production exponent ×0.8 AND generators cost ×30 more.", mPow: 0.8, mCost: 30,
+      reward: "×10 all production", rMult: 10 },
+  ];
 })();

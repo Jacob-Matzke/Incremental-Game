@@ -56,6 +56,8 @@
 
       achievements: {},                   // { achId: true }
       milestones: {},                     // { milestoneKey: true } — for one-time toasts
+      activeTrial: null,                  // id of the trial currently being attempted
+      trialsDone: {},                     // { trialId: true }
 
       buffs: [],                          // active Cosmic Anomaly buffs (timed)
 
@@ -89,6 +91,7 @@
     eventMult: 1,       // product of active Cosmic Anomaly buffs
     milestoneMult: 1,   // production from prestige-count milestones
     milestoneAutos: new Set(),  // auto-buyer ids granted free by milestones
+    trialSlMult: 1,     // permanent Starlight-gain bonus from completed trials
   };
 
   /* ---------------- helpers ---------------- */
@@ -134,6 +137,13 @@
     G.cache.milestoneMult = msMult;
     m *= msMult;
 
+    // Completed-trial permanent rewards (production + Starlight-gain)
+    let trialSl = 1;
+    for (const t of G.TRIALS) {
+      if (s.trialsDone[t.id]) { if (t.rMult) m *= t.rMult; if (t.rSl) trialSl *= t.rSl; }
+    }
+    G.cache.trialSlMult = trialSl;
+
     // Achievements (product of all completed mults)
     let am = 1;
     for (const a of G.ACHIEVEMENTS) if (s.achievements[a.id] && a.mult) am *= a.mult;
@@ -155,6 +165,10 @@
     G.cache.eventMult = ev;
     m *= ev;
 
+    // Active-trial handicap (production / exponent / cost)
+    const trial = s.activeTrial ? G.TRIALS.find(t => t.id === s.activeTrial) : null;
+    if (trial && trial.mProd) m *= trial.mProd;
+
     G.cache.prodMult = clampNum(m);
 
     // Production exponent (additive bonuses combine)
@@ -162,12 +176,14 @@
     if (G.has("prod4")) pow += 0.04;
     if (G.nh("n_prod3")) pow += 0.05;
     pow += msPow;
+    if (trial && trial.mPow) pow *= trial.mPow;
     G.cache.prodPow = pow;
 
     // Cost multiplier
     let cm = 1;
     if (G.has("cost1")) cm *= 0.6;
     if (G.nh("n_cost")) cm *= 0.1;
+    if (trial && trial.mCost) cm *= trial.mCost;
     G.cache.costMult = cm;
 
     // Energy generation rate (driven by player-bought generators -> the loops feed each other)
@@ -247,6 +263,7 @@
     if (G.nh("n_sl1"))    g *= 3;
     if (G.has("slgain2")) g = Math.pow(g, 1.08);
     if (G.nh("n_sl2"))    g = Math.pow(g, 1.10);
+    g *= G.cache.trialSlMult || 1;   // permanent reward from completed trials
     return g;
   }
   function collapseGain(s) { return Math.floor(collapseGainRaw(s)); }
@@ -256,6 +273,7 @@
 
   function doCollapse(silent) {
     const s = G.state;
+    if (s.activeTrial) return false;   // can't Collapse mid-trial
     const gain = G.cache.slGain;
     if (gain < 1) return false;
 
@@ -297,6 +315,7 @@
 
   function doCondense(silent) {
     const s = G.state;
+    if (s.activeTrial) return false;   // can't Condense mid-trial
     const gain = condenseGain(s);
     if (gain < 1) return false;
 
@@ -328,6 +347,49 @@
     return true;
   }
   G.doCondense = doCondense;
+
+  /* ---------------- trials (challenges) ---------------- */
+  // Reset just the generator run (Stardust + generators), keeping Starlight,
+  // Nebulae, upgrades and milestones — shared by trial enter/exit.
+  function resetRun() {
+    const s = G.state;
+    s.stardust = 10;
+    s.totalStardust = 10;
+    s.generators = G.GENERATORS.map(() => ({ count: 0, bought: 0 }));
+    if (G.has("keep1")) { s.generators[0].count = 10; s.generators[0].bought = 10; }
+    s._autoCollapseTimer = 0;
+  }
+  G.trialDef = id => G.TRIALS.find(t => t.id === id) || null;
+  G.canCompleteTrial = () => {
+    const s = G.state, t = G.trialDef(s.activeTrial);
+    return !!(t && !s.trialsDone[t.id] && s.totalStardust >= t.goal);
+  };
+  G.enterTrial = function (id) {
+    const s = G.state;
+    if (s.activeTrial || !G.trialDef(id)) return false;
+    s.activeTrial = id;
+    resetRun();
+    recalc();
+    return true;
+  };
+  G.exitTrial = function () {          // abandon, no reward
+    if (!G.state.activeTrial) return false;
+    G.state.activeTrial = null;
+    resetRun();
+    recalc();
+    return true;
+  };
+  G.completeTrial = function () {
+    const s = G.state, t = G.trialDef(s.activeTrial);
+    if (!G.canCompleteTrial()) return false;
+    s.trialsDone[t.id] = true;
+    s.activeTrial = null;
+    resetRun();
+    recalc();
+    G.toast("🏅 Trial complete: " + t.name, "Reward: " + t.reward);
+    if (G.news) G.news("🏅 Trial conquered — " + t.name + "!");
+    return true;
+  };
 
   // Purchase a Nebula upgrade (mirrors buyUpgrade but on the persistent tree).
   G.buyNebula = function (id) {
@@ -486,6 +548,8 @@
     merged.automation = s.automation || {};
     merged.achievements = s.achievements || {};
     merged.milestones = s.milestones || {};
+    merged.trialsDone = s.trialsDone || {};
+    merged.activeTrial = s.activeTrial || null;
     merged.buffs = Array.isArray(s.buffs) ? s.buffs : [];
     if (!Array.isArray(merged.generators) || merged.generators.length !== G.GENERATORS.length) {
       merged.generators = G.GENERATORS.map((_, i) =>
