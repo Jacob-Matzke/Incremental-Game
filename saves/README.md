@@ -24,5 +24,6 @@ grinding to it.
 | `06-early-layer2` | One Condense done: 3 Nebulae, a couple of Nebula nodes bought, layer 1 freshly reset. Feel how much faster the second run is. |
 | `07-capstone-perpetual` | Whole Nebula tree owned, including **Perpetual Collapse** — Starlight now climbs on its own with no resets. Auto-buyers are left OFF so you can watch the passive gain; flip them on to ramp (note: at this depth numbers grow very fast, since there's no layer 3 yet). |
 
-These are generated from the live game, so they always match the current
-balance. If you want a checkpoint at a different spot, ask and I'll mint one.
+These are built by [`gen_saves.js`](gen_saves.js) (run `node saves/gen_saves.js`
+from the project root) so they always match the current balance. If you want a
+checkpoint at a different spot, ask and I'll mint one.

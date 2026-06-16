@@ -12,7 +12,20 @@
   // steadily-climbing currency (≈ tens→hundreds over a playthrough, never
   // trillions). gain = SL_COEF * (log10(totalStardust / COLLAPSE_REQ))^SL_POW.
   const SL_COEF = 1;
-  const SL_POW = 1.5;
+  const SL_POW = 2.5;
+  // The game uses native doubles (max ~1.8e308). Clamp resources below that so
+  // production can never reach Infinity — once a value is Infinity, a later
+  // "Infinity - Infinity" (e.g. buying) yields NaN, which fmt() shows as "0",
+  // soft-locking the game. MAX_NUM is the hard ceiling until a big-number
+  // library is added.
+  const MAX_NUM = 1e300;
+  function clampNum(x) {
+    if (isNaN(x)) return 0;       // never let NaN propagate
+    if (x < 0) return 0;
+    if (x > MAX_NUM) return MAX_NUM;
+    return x;
+  }
+  G.clampNum = clampNum;
 
   /* ---------------- default state ---------------- */
   function freshState() {
@@ -116,7 +129,7 @@
     G.cache.energyMult = em;
     m *= em;
 
-    G.cache.prodMult = m;
+    G.cache.prodMult = clampNum(m);
 
     // Production exponent (additive bonuses combine)
     let pow = 1;
@@ -188,9 +201,9 @@
       if (s.stardust < bulkCost(i, k)) return false;
     }
     const cost = bulkCost(i, k);
-    if (s.stardust < cost) return false;
-    s.stardust -= cost;
-    s.generators[i].count += k;
+    if (!isFinite(cost) || s.stardust < cost) return false;   // guard Infinity cost
+    s.stardust = clampNum(s.stardust - cost);
+    s.generators[i].count = clampNum(s.generators[i].count + k);
     s.generators[i].bought += k;
     return true;
   }
@@ -219,8 +232,8 @@
     const gain = G.cache.slGain;
     if (gain < 1) return false;
 
-    s.starlight += gain;
-    s.totalStarlight += gain;
+    s.starlight = clampNum(s.starlight + gain);
+    s.totalStarlight = clampNum(s.totalStarlight + gain);
     s.collapses += 1;
     s.stats.totalCollapses += 1;
     if (s.starlight > s.stats.bestStarlight) s.stats.bestStarlight = s.starlight;
@@ -244,9 +257,11 @@
   G.doCollapse = doCollapse;
 
   /* ---------------- prestige 2: Condense -> Nebulae ---------------- */
+  // Exponent 0.8 (vs sqrt) so Nebulae scale up enough to reach the larger
+  // Nebula-tree costs over a long playthrough, while staying bounded.
   function condenseGain(s) {
     if (s.starlight < NEBULA_REQ) return 0;
-    let g = Math.pow(s.starlight / NEBULA_REQ, 0.5);
+    let g = Math.pow(s.starlight / NEBULA_REQ, 0.8);
     return Math.floor(g);
   }
   G.condenseGain = condenseGain;
@@ -258,8 +273,8 @@
     const gain = condenseGain(s);
     if (gain < 1) return false;
 
-    s.nebulae += gain;
-    s.totalNebulae += gain;
+    s.nebulae = clampNum(s.nebulae + gain);
+    s.totalNebulae = clampNum(s.totalNebulae + gain);
     s.condenses += 1;
     s.stats.totalCondenses += 1;
     if (s.nebulae > s.stats.bestNebulae) s.stats.bestNebulae = s.nebulae;
@@ -312,28 +327,28 @@
     // Stardust from tier 0 (apply exponent to the production flow).
     const baseFlow0 = flowOf(s.generators[0].count * G.GENERATORS[0].baseProd * m);
     const dStardust = baseFlow0 * dt;
-    s.stardust += dStardust;
-    s.totalStardust += dStardust;   // cumulative "ever produced"
+    s.stardust = clampNum(s.stardust + dStardust);
+    s.totalStardust = clampNum(s.totalStardust + dStardust);   // cumulative "ever produced"
 
     // Cascade: each higher tier produces the tier below it.
     for (let i = G.GENERATORS.length - 1; i >= 1; i--) {
       const flow = flowOf(s.generators[i].count * G.GENERATORS[i].baseProd * m);
-      s.generators[i - 1].count += flow * dt;
+      s.generators[i - 1].count = clampNum(s.generators[i - 1].count + flow * dt);
     }
 
     // Stellar Energy (Loop B)
     if (s.fusionUnlocked) {
       const e = G.cache.energyRate * dt;
-      s.energy += e;
-      s.totalEnergy += e;
+      s.energy = clampNum(s.energy + e);
+      s.totalEnergy = clampNum(s.totalEnergy + e);
     }
 
     // Perpetual Collapse (Nebula capstone): passively accrue Starlight at the
     // rate a Collapse would grant, with no reset — retiring the layer-1 grind.
     if (G.nh("n_passive") && G.cache.slGainRaw > 0) {
       const sl = G.cache.slGainRaw * dt;
-      s.starlight += sl;
-      s.totalStarlight += sl;
+      s.starlight = clampNum(s.starlight + sl);
+      s.totalStarlight = clampNum(s.totalStarlight + sl);
       if (s.starlight > s.stats.bestStarlight) s.stats.bestStarlight = s.starlight;
     }
 

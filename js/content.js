@@ -30,29 +30,32 @@
      Branches: production / economy / fusion / automation.
      --------------------------------------------------------------- */
   G.STAR_UPGRADES = [
+    // Costs span ~1 → 5e6. Early production upgrades are deliberately cheap so
+    // the engine (and thus Starlight gain) ramps quickly; the steep climb to the
+    // millions lives in rows 4-5, a long-term grind aided by Nebula boosts.
     // Row 1 — entry
-    { id: "prod1",  name: "Gravity Wells",   row: 1, cost: 1,   desc: "×2 to all Stardust production." },
-    { id: "cost1",  name: "Cosmic Bargain",  row: 1, cost: 2,   desc: "Generators cost 40% less." },
-    { id: "keep1",  name: "Stellar Memory",  row: 1, cost: 4,   desc: "Begin each Collapse with 10 Motes." },
+    { id: "prod1",  name: "Gravity Wells",   row: 1, cost: 1,      desc: "×2 to all Stardust production." },
+    { id: "cost1",  name: "Cosmic Bargain",  row: 1, cost: 2,      desc: "Generators cost 40% less." },
+    { id: "keep1",  name: "Stellar Memory",  row: 1, cost: 5,      desc: "Begin each Collapse with 10 Motes." },
 
     // Row 2
-    { id: "prod2",  name: "Dark Energy",     row: 2, cost: 8,   req: ["prod1"], desc: "×3 to all Stardust production." },
-    { id: "slgain1",name: "Luminous Collapse",row: 2, cost: 6,  desc: "+100% Starlight gained from Collapse." },
-    { id: "fusion", name: "Ignite Fusion",   row: 2, cost: 12,  req: ["prod1"], desc: "Unlock the Fusion loop — a second resource (Stellar Energy) that boosts everything." },
+    { id: "prod2",  name: "Dark Energy",     row: 2, cost: 8,      req: ["prod1"], desc: "×3 to all Stardust production." },
+    { id: "slgain1",name: "Luminous Collapse",row: 2, cost: 15,    desc: "+100% Starlight gained from Collapse." },
+    { id: "fusion", name: "Ignite Fusion",   row: 2, cost: 30,     req: ["prod1"], desc: "Unlock the Fusion loop — a second resource (Stellar Energy) that boosts everything." },
 
     // Row 3
-    { id: "prod3",  name: "Singularity",     row: 3, cost: 50,   req: ["prod2"], desc: "×4 to all Stardust production." },
-    { id: "autoLow",name: "Drone Foundry",   row: 3, cost: 40,   req: ["cost1"], desc: "Unlock auto-buyers for Mote, Dust Cloud & Comet." },
-    { id: "energy1",name: "Plasma Conduits", row: 3, cost: 90,   req: ["fusion"], desc: "×5 Stellar Energy generation, and its boost is stronger." },
+    { id: "prod3",  name: "Singularity",     row: 3, cost: 80,     req: ["prod2"], desc: "×4 to all Stardust production." },
+    { id: "autoLow",name: "Drone Foundry",   row: 3, cost: 250,    req: ["cost1"], desc: "Unlock auto-buyers for Mote, Dust Cloud & Comet." },
+    { id: "energy1",name: "Plasma Conduits", row: 3, cost: 600,    req: ["fusion"], desc: "×5 Stellar Energy generation, and its boost is stronger." },
 
     // Row 4
-    { id: "prod4",  name: "Cosmic Web",      row: 4, cost: 250,  req: ["prod3"], desc: "All Stardust production is raised to the ^1.04 power." },
-    { id: "slgain2",name: "Supernova Echo",  row: 4, cost: 200,  req: ["slgain1"], desc: "Starlight gain is raised to the ^1.08 power." },
-    { id: "autoHigh",name:"Fleet Command",   row: 4, cost: 350,  req: ["autoLow"], desc: "Unlock auto-buyers for Asteroid, Planet & Star." },
+    { id: "slgain2",name: "Supernova Echo",  row: 4, cost: 4000,   req: ["slgain1"], desc: "Starlight gain is raised to the ^1.08 power." },
+    { id: "autoHigh",name:"Fleet Command",   row: 4, cost: 15000,  req: ["autoLow"], desc: "Unlock auto-buyers for Asteroid, Planet & Star." },
+    { id: "prod4",  name: "Cosmic Web",      row: 4, cost: 60000,  req: ["prod3"], desc: "All Stardust production is raised to the ^1.04 power." },
 
     // Row 5
-    { id: "autoCol",name: "Recursion Engine",row: 5, cost: 900,  req: ["autoHigh", "slgain1"], desc: "Unlock Auto-Collapse." },
-    { id: "synergy",name: "Stellar Synergy", row: 5, cost: 1500, req: ["prod4", "energy1"], desc: "Each owned Star multiplies ALL production by +2%." },
+    { id: "autoCol",name: "Recursion Engine",row: 5, cost: 200000,  req: ["autoHigh", "slgain1"], desc: "Unlock Auto-Collapse." },
+    { id: "synergy",name: "Stellar Synergy", row: 5, cost: 5000000, req: ["prod4", "energy1"], desc: "Each owned Star multiplies ALL production by +2%." },
   ];
 
   /* ---------------------------------------------------------------
@@ -62,29 +65,31 @@
      each new run through layer 1 dramatically faster — the "new tree
      each prestige" loop.
      --------------------------------------------------------------- */
+  // Costs span ~1 → 1e6, a deep grind across many Condenses (Nebulae scale up
+  // via the boosted condense formula). Reqs are always cheaper than dependents.
   G.NEBULA_UPGRADES = [
     // Row 1
-    { id: "n_prod1", name: "Cosmic Lattice",   row: 1, cost: 1,  desc: "×5 to all Stardust production." },
-    { id: "n_sl1",   name: "Stellar Genesis",  row: 1, cost: 1,  desc: "×3 Starlight gained from Collapse." },
-    { id: "n_start", name: "Echoed Light",     row: 1, cost: 2,  desc: "Begin each Condense already holding 10 Starlight." },
+    { id: "n_prod1", name: "Cosmic Lattice",   row: 1, cost: 1,       desc: "×5 to all Stardust production." },
+    { id: "n_sl1",   name: "Stellar Genesis",  row: 1, cost: 3,       desc: "×3 Starlight gained from Collapse." },
+    { id: "n_start", name: "Echoed Light",     row: 1, cost: 8,       desc: "Begin each Condense already holding 10 Starlight." },
 
     // Row 2
-    { id: "n_prod2", name: "Dark Nebula",      row: 2, cost: 4,  req: ["n_prod1"], desc: "×25 to all Stardust production." },
-    { id: "n_cost",  name: "Gravity Crush",    row: 2, cost: 3,  desc: "Generators cost 90% less." },
-    { id: "n_fuse",  name: "Eternal Flame",    row: 2, cost: 5,  desc: "Fusion stays ignited after a Condense, and Energy is no longer reset." },
+    { id: "n_prod2", name: "Dark Nebula",      row: 2, cost: 25,      req: ["n_prod1"], desc: "×25 to all Stardust production." },
+    { id: "n_cost",  name: "Gravity Crush",    row: 2, cost: 60,      desc: "Generators cost 90% less." },
+    { id: "n_fuse",  name: "Eternal Flame",    row: 2, cost: 180,     desc: "Fusion stays ignited after a Condense, and Energy is no longer reset." },
 
     // Row 3
-    { id: "n_auto",  name: "Autonomic Core",   row: 3, cost: 12, req: ["n_fuse"], desc: "All auto-buyers and Auto-Collapse start unlocked after a Condense." },
-    { id: "n_sl2",   name: "Supernova Bloom",  row: 3, cost: 9,  req: ["n_sl1"], desc: "Starlight gain is raised to the ^1.10 power." },
-    { id: "n_neb",   name: "Nebular Resonance",row: 3, cost: 15, req: ["n_prod1"], desc: "Each Nebula multiplies all production ×1.10 (compounding)." },
+    { id: "n_sl2",   name: "Supernova Bloom",  row: 3, cost: 600,     req: ["n_sl1"], desc: "Starlight gain is raised to the ^1.10 power." },
+    { id: "n_neb",   name: "Nebular Resonance",row: 3, cost: 2000,    req: ["n_prod1"], desc: "Each Nebula multiplies all production ×1.10 (compounding)." },
+    { id: "n_auto",  name: "Autonomic Core",   row: 3, cost: 6000,    req: ["n_fuse"], desc: "All auto-buyers and Auto-Collapse start unlocked after a Condense." },
 
     // Row 4
-    { id: "n_prod3", name: "Galactic Filament",row: 4, cost: 40, req: ["n_prod2"], desc: "All Stardust production gains a +0.05 exponent." },
-    { id: "n_offline",name:"Stasis Field",     row: 4, cost: 25, desc: "Offline progress cap +16 hours (24h total)." },
-    { id: "n_synergy",name:"Luminous Web",     row: 4, cost: 60, req: ["n_neb", "n_sl2"], desc: "All production ×(1 + log₁₀(1 + Starlight))." },
+    { id: "n_offline",name:"Stasis Field",     row: 4, cost: 18000,   desc: "Offline progress cap +16 hours (24h total)." },
+    { id: "n_prod3", name: "Galactic Filament",row: 4, cost: 55000,   req: ["n_prod2"], desc: "All Stardust production gains a +0.05 exponent." },
+    { id: "n_synergy",name:"Luminous Web",     row: 4, cost: 700000,  req: ["n_neb", "n_sl2"], desc: "All production ×(1 + log₁₀(1 + Starlight))." },
 
     // Row 5 — capstone: retires the manual Collapse grind
-    { id: "n_passive",name:"Perpetual Collapse",row: 5, cost: 150, req: ["n_synergy", "n_sl2"],
+    { id: "n_passive",name:"Perpetual Collapse",row: 5, cost: 7000000, req: ["n_synergy", "n_sl2"],
       desc: "Every second, automatically gain the Starlight a Collapse would grant right now — with NO reset. Manual Collapsing becomes optional." },
   ];
 

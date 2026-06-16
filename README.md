@@ -57,11 +57,18 @@ Data-driven and modular. Adding content rarely means touching engine code.
   (`doCondense`/`condenseGain`) share the same shape, so a layer 3 currency that
   resets Nebulae and unlocks a third tree slots in the same way.
 
-### Balance knobs
-Early-game pacing lives in a few constants — `COLLAPSE_REQ` / `NEBULA_REQ` in
-`js/game.js`, and each generator's `costGrowth` / `baseProd` in `js/content.js`.
-Steeper `costGrowth` and lower `baseProd` slow the runaway; the prestige `*_REQ`
-thresholds set when each layer opens.
+### Balance knobs (all in `js/game.js` unless noted)
+- `SL_COEF` / `SL_POW` — the Starlight gain curve. Gain is
+  `SL_COEF · log10(totalStardust / COLLAPSE_REQ) ^ SL_POW`. Using a **log** of
+  Stardust (which itself runs away hyper-exponentially) keeps Starlight bounded —
+  raise `SL_POW` to widen the gain range, lower it to flatten/de-bunch.
+- `COLLAPSE_REQ` / `NEBULA_REQ` — Stardust scale for Collapse gain / Starlight
+  needed per Condense. The condense exponent (0.8) lives in `condenseGain`.
+- Generator `costGrowth` / `baseProd` in `js/content.js`, and the tree costs in
+  `G.STAR_UPGRADES` / `G.NEBULA_UPGRADES`.
+- `MAX_NUM` (1e300) — hard ceiling that clamps all resources so native-double
+  overflow can't reach `Infinity` (which would cascade to `NaN` and soft-lock the
+  game). This is the placeholder until `break_infinity.js` lands.
 
 ## Roadmap ideas
 - Prestige layer 3 with a third upgrade tree.

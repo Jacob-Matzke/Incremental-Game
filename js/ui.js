@@ -18,12 +18,14 @@
   /* ---------------- tab definitions ---------------- */
   const TABS = [
     { id: "cosmos",       label: "✦ Cosmos",       show: () => true },
-    { id: "collapse",     label: "💫 Collapse",     show: s => s.totalStardust >= 1e3 || s.collapses > 0,
+    // Once unlocked, a tab stays visible — keyed on persistent totals (which
+    // survive Condense), not per-run values that reset.
+    { id: "collapse",     label: "💫 Collapse",     show: s => s.totalStardust >= 1e3 || s.totalStarlight > 0 || s.condenses > 0,
                           notif: s => G.canCollapse() ? "!" : null },
-    { id: "nebula",       label: "🌫 Nebula",       show: s => s.condenses > 0 || (s.collapses > 0 && s.totalStarlight >= G.NEBULA_REQ / 2),
+    { id: "nebula",       label: "🌫 Nebula",       show: s => s.condenses > 0 || s.totalStarlight >= G.NEBULA_REQ / 2,
                           notif: s => G.canCondense() ? "!" : null },
     { id: "fusion",       label: "⚛ Fusion",       show: s => s.fusionUnlocked },
-    { id: "automation",   label: "🤖 Automation",   show: s => s.collapses > 0 },
+    { id: "automation",   label: "🤖 Automation",   show: s => s.collapses > 0 || s.totalStarlight > 0 || s.condenses > 0 },
     { id: "achievements", label: "🏆 Achievements", show: () => true,
                           notif: s => { const n = G.ACHIEVEMENTS.filter(a => s.achievements[a.id]).length; return n + "/" + G.ACHIEVEMENTS.length; } },
     { id: "stats",        label: "📊 Stats",        show: () => true },
@@ -76,8 +78,8 @@
   function refreshResources() {
     const s = G.state;
     const el = document.getElementById("resources");
-    const showSL = s.collapses > 0 || s.totalStardust >= 1e3;
-    const showNeb = s.condenses > 0 || (s.collapses > 0 && s.totalStarlight >= G.NEBULA_REQ / 2);
+    const showSL = s.totalStarlight > 0 || s.totalStardust >= 1e3 || s.condenses > 0;
+    const showNeb = s.condenses > 0 || s.totalStarlight >= G.NEBULA_REQ / 2;
     const parts = [];
     parts.push(resHtml("stardust", "Stardust", G.fmt(s.stardust, "floor"), "+" + G.fmtRate(G.cache.stardustRate)));
     if (showSL) parts.push(resHtml("starlight", "Starlight", G.fmtInt(s.starlight),
