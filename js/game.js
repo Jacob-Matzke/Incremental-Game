@@ -5,8 +5,14 @@
   const SAVE_KEY = "stardust_ascendant_save";
   const SAVE_VERSION = 2;
   const OFFLINE_BASE_CAP = 8 * 3600;   // base 8 hours of offline progress
-  const COLLAPSE_REQ = 1e5;       // total Stardust needed for a Collapse to give >=1 Starlight
+  const COLLAPSE_REQ = 1e3;       // Stardust scale for the Collapse gain formula
   const NEBULA_REQ = 1000;        // Starlight needed for a Condense to give >=1 Nebula
+  // Starlight gain scales with the *logarithm* of Stardust, not a power of it.
+  // Stardust runs away hyper-exponentially; a log keeps Starlight a bounded,
+  // steadily-climbing currency (≈ tens→hundreds over a playthrough, never
+  // trillions). gain = SL_COEF * (log10(totalStardust / COLLAPSE_REQ))^SL_POW.
+  const SL_COEF = 1;
+  const SL_POW = 1.5;
 
   /* ---------------- default state ---------------- */
   function freshState() {
@@ -82,10 +88,11 @@
     const s = G.state;
     let m = 1;
 
-    // Starlight tree — production
-    if (G.has("prod1")) m *= 3;
-    if (G.has("prod2")) m *= 5;
-    if (G.has("prod3")) m *= 10;
+    // Starlight tree — production (gentle stacking so Stardust climbs steadily
+    // rather than slow-then-explode)
+    if (G.has("prod1")) m *= 2;
+    if (G.has("prod2")) m *= 3;
+    if (G.has("prod3")) m *= 4;
     if (G.has("synergy")) m *= Math.pow(1.02, s.generators[5].count);
 
     // Nebula tree — production (persists across Condense)
@@ -192,8 +199,10 @@
   /* ---------------- prestige 1: Collapse -> Starlight ---------------- */
   // Unfloored Starlight value of a Collapse right now (0 below the threshold).
   function collapseGainRaw(s) {
-    if (s.totalStardust < COLLAPSE_REQ) return 0;
-    let g = Math.pow(s.totalStardust / COLLAPSE_REQ, 0.5);
+    if (s.totalStardust <= COLLAPSE_REQ) return 0;
+    const logExcess = Math.log10(s.totalStardust / COLLAPSE_REQ);
+    let g = SL_COEF * Math.pow(logExcess, SL_POW);
+    // Gain multipliers/exponents apply on top (upgrades stay impactful).
     if (G.has("slgain1")) g *= 2;
     if (G.nh("n_sl1"))    g *= 3;
     if (G.has("slgain2")) g = Math.pow(g, 1.08);

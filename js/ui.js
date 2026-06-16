@@ -322,7 +322,7 @@
     const gainEl = document.getElementById("col-gain");
     if (reqEl) reqEl.textContent = can
       ? "Ready to collapse"
-      : "Requires " + G.fmt(G.COLLAPSE_REQ) + " total Stardust (have " + G.fmt(s.totalStardust) + ")";
+      : "Build more Stardust — a Collapse must yield at least 1 Starlight (have " + G.fmt(s.totalStardust) + " total)";
     if (gainEl) gainEl.textContent = "+" + G.fmtInt(G.cache.slGain) + " Starlight";
     const btn = document.getElementById("col-btn");
     if (btn) btn.classList.toggle("cant", !can);   // visual only; doCollapse() guards

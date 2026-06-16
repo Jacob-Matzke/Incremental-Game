@@ -31,28 +31,28 @@
      --------------------------------------------------------------- */
   G.STAR_UPGRADES = [
     // Row 1 — entry
-    { id: "prod1",  name: "Gravity Wells",   row: 1, cost: 1,   desc: "×3 to all Stardust production." },
+    { id: "prod1",  name: "Gravity Wells",   row: 1, cost: 1,   desc: "×2 to all Stardust production." },
     { id: "cost1",  name: "Cosmic Bargain",  row: 1, cost: 2,   desc: "Generators cost 40% less." },
     { id: "keep1",  name: "Stellar Memory",  row: 1, cost: 4,   desc: "Begin each Collapse with 10 Motes." },
 
     // Row 2
-    { id: "prod2",  name: "Dark Energy",     row: 2, cost: 8,   req: ["prod1"], desc: "×5 to all Stardust production." },
+    { id: "prod2",  name: "Dark Energy",     row: 2, cost: 8,   req: ["prod1"], desc: "×3 to all Stardust production." },
     { id: "slgain1",name: "Luminous Collapse",row: 2, cost: 6,  desc: "+100% Starlight gained from Collapse." },
     { id: "fusion", name: "Ignite Fusion",   row: 2, cost: 12,  req: ["prod1"], desc: "Unlock the Fusion loop — a second resource (Stellar Energy) that boosts everything." },
 
     // Row 3
-    { id: "prod3",  name: "Singularity",     row: 3, cost: 30,  req: ["prod2"], desc: "×10 to all Stardust production." },
-    { id: "autoLow",name: "Drone Foundry",   row: 3, cost: 20,  req: ["cost1"], desc: "Unlock auto-buyers for Mote, Dust Cloud & Comet." },
-    { id: "energy1",name: "Plasma Conduits", row: 3, cost: 45,  req: ["fusion"], desc: "×5 Stellar Energy generation, and its boost is stronger." },
+    { id: "prod3",  name: "Singularity",     row: 3, cost: 50,   req: ["prod2"], desc: "×4 to all Stardust production." },
+    { id: "autoLow",name: "Drone Foundry",   row: 3, cost: 40,   req: ["cost1"], desc: "Unlock auto-buyers for Mote, Dust Cloud & Comet." },
+    { id: "energy1",name: "Plasma Conduits", row: 3, cost: 90,   req: ["fusion"], desc: "×5 Stellar Energy generation, and its boost is stronger." },
 
     // Row 4
-    { id: "prod4",  name: "Cosmic Web",      row: 4, cost: 120, req: ["prod3"], desc: "All Stardust production is raised to the ^1.04 power." },
-    { id: "slgain2",name: "Supernova Echo",  row: 4, cost: 90,  req: ["slgain1"], desc: "Starlight gain is raised to the ^1.08 power." },
-    { id: "autoHigh",name:"Fleet Command",   row: 4, cost: 150, req: ["autoLow"], desc: "Unlock auto-buyers for Asteroid, Planet & Star." },
+    { id: "prod4",  name: "Cosmic Web",      row: 4, cost: 250,  req: ["prod3"], desc: "All Stardust production is raised to the ^1.04 power." },
+    { id: "slgain2",name: "Supernova Echo",  row: 4, cost: 200,  req: ["slgain1"], desc: "Starlight gain is raised to the ^1.08 power." },
+    { id: "autoHigh",name:"Fleet Command",   row: 4, cost: 350,  req: ["autoLow"], desc: "Unlock auto-buyers for Asteroid, Planet & Star." },
 
     // Row 5
-    { id: "autoCol",name: "Recursion Engine",row: 5, cost: 400, req: ["autoHigh", "slgain1"], desc: "Unlock Auto-Collapse." },
-    { id: "synergy",name: "Stellar Synergy", row: 5, cost: 600, req: ["prod4", "energy1"], desc: "Each owned Star multiplies ALL production by +2%." },
+    { id: "autoCol",name: "Recursion Engine",row: 5, cost: 900,  req: ["autoHigh", "slgain1"], desc: "Unlock Auto-Collapse." },
+    { id: "synergy",name: "Stellar Synergy", row: 5, cost: 1500, req: ["prod4", "energy1"], desc: "Each owned Star multiplies ALL production by +2%." },
   ];
 
   /* ---------------------------------------------------------------
