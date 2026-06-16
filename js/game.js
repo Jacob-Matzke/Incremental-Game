@@ -61,7 +61,8 @@
     energyMult: 1,      // multiplier contributed by Stellar Energy
     energyRate: 0,      // energy/sec
     stardustRate: 0,    // observed stardust/sec
-    slGain: 0,          // starlight that a collapse would give right now
+    slGain: 0,          // starlight that a collapse would give right now (floored)
+    slGainRaw: 0,       // unfloored version — used by Perpetual Collapse passive
     achMult: 1,
   };
 
@@ -133,7 +134,8 @@
     }
 
     // Starlight that a collapse would grant right now
-    G.cache.slGain = collapseGain(s);
+    G.cache.slGainRaw = collapseGainRaw(s);
+    G.cache.slGain = Math.floor(G.cache.slGainRaw);
   }
   G.recalc = recalc;
 
@@ -188,15 +190,17 @@
   G.buyGenerator = buyGenerator;
 
   /* ---------------- prestige 1: Collapse -> Starlight ---------------- */
-  function collapseGain(s) {
+  // Unfloored Starlight value of a Collapse right now (0 below the threshold).
+  function collapseGainRaw(s) {
     if (s.totalStardust < COLLAPSE_REQ) return 0;
     let g = Math.pow(s.totalStardust / COLLAPSE_REQ, 0.5);
     if (G.has("slgain1")) g *= 2;
     if (G.nh("n_sl1"))    g *= 3;
     if (G.has("slgain2")) g = Math.pow(g, 1.08);
     if (G.nh("n_sl2"))    g = Math.pow(g, 1.10);
-    return Math.floor(g);
+    return g;
   }
+  function collapseGain(s) { return Math.floor(collapseGainRaw(s)); }
 
   function canCollapse() { return G.cache.slGain >= 1; }
   G.canCollapse = canCollapse;
@@ -313,6 +317,15 @@
       const e = G.cache.energyRate * dt;
       s.energy += e;
       s.totalEnergy += e;
+    }
+
+    // Perpetual Collapse (Nebula capstone): passively accrue Starlight at the
+    // rate a Collapse would grant, with no reset — retiring the layer-1 grind.
+    if (G.nh("n_passive") && G.cache.slGainRaw > 0) {
+      const sl = G.cache.slGainRaw * dt;
+      s.starlight += sl;
+      s.totalStarlight += sl;
+      if (s.starlight > s.stats.bestStarlight) s.stats.bestStarlight = s.starlight;
     }
 
     // Automation

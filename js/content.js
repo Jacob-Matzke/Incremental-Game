@@ -82,6 +82,10 @@
     { id: "n_prod3", name: "Galactic Filament",row: 4, cost: 40, req: ["n_prod2"], desc: "All Stardust production gains a +0.05 exponent." },
     { id: "n_offline",name:"Stasis Field",     row: 4, cost: 25, desc: "Offline progress cap +16 hours (24h total)." },
     { id: "n_synergy",name:"Luminous Web",     row: 4, cost: 60, req: ["n_neb", "n_sl2"], desc: "All production ×(1 + log₁₀(1 + Starlight))." },
+
+    // Row 5 — capstone: retires the manual Collapse grind
+    { id: "n_passive",name:"Perpetual Collapse",row: 5, cost: 150, req: ["n_synergy", "n_sl2"],
+      desc: "Every second, automatically gain the Starlight a Collapse would grant right now — with NO reset. Manual Collapsing becomes optional." },
   ];
 
   /* ---------------------------------------------------------------
