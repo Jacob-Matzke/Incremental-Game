@@ -595,6 +595,10 @@
           <label class="switch"><input type="checkbox" id="set-autosave"><span class="slider"></span></label>
           <span>Autosave every 15s</span>
         </div>
+        <div class="settings-row">
+          <label class="switch"><input type="checkbox" id="set-events"><span class="slider"></span></label>
+          <span>Cosmic Anomalies (clickable bonus orbs)</span>
+        </div>
       </div>
       <div class="settings-block">
         <h3 style="color:var(--bad)">Danger Zone</h3>
@@ -633,6 +637,8 @@
     el.querySelector("#not-scientific").onclick = () => { G.state.settings.notation = "scientific"; refreshSettings(); };
     const as = el.querySelector("#set-autosave");
     as.onchange = () => { G.state.settings.autosave = as.checked; };
+    const ev = el.querySelector("#set-events");
+    ev.onchange = () => { G.state.settings.events = ev.checked; };
     el.querySelector("#btn-reset").onclick = () => {
       if (confirm("Hard reset? This permanently erases ALL progress. Consider exporting a backup first.")) {
         G.hardReset(); rebuildAll(); G.toast("☠ Reset", "A fresh cosmos awaits.");
@@ -647,6 +653,8 @@
     if (sci) sci.classList.toggle("active", s.settings.notation === "scientific");
     const as = document.getElementById("set-autosave");
     if (as) as.checked = s.settings.autosave;
+    const ev = document.getElementById("set-events");
+    if (ev) ev.checked = s.settings.events !== false;
   }
 
   /* ---------------- dispatch ---------------- */

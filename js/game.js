@@ -56,9 +56,11 @@
 
       achievements: {},                   // { achId: true }
 
+      buffs: [],                          // active Cosmic Anomaly buffs (timed)
+
       buyMode: 1,                         // 1 | 10 | 'max'
       activeTab: "cosmos",
-      settings: { notation: "standard", autosave: true },
+      settings: { notation: "standard", autosave: true, events: true },
 
       stats: {
         timePlayed: 0,
@@ -83,6 +85,7 @@
     slGain: 0,          // starlight that a collapse would give right now (floored)
     slGainRaw: 0,       // unfloored version — used by Perpetual Collapse passive
     achMult: 1,
+    eventMult: 1,       // product of active Cosmic Anomaly buffs
   };
 
   /* ---------------- helpers ---------------- */
@@ -128,6 +131,12 @@
     }
     G.cache.energyMult = em;
     m *= em;
+
+    // Cosmic Anomaly buffs (timed event multipliers)
+    let ev = 1;
+    if (s.buffs) for (const b of s.buffs) ev *= b.mult;
+    G.cache.eventMult = ev;
+    m *= ev;
 
     G.cache.prodMult = clampNum(m);
 
@@ -352,6 +361,12 @@
       if (s.starlight > s.stats.bestStarlight) s.stats.bestStarlight = s.starlight;
     }
 
+    // Expire timed event buffs (handled in tick so offline time also drains them)
+    if (s.buffs && s.buffs.length) {
+      for (const b of s.buffs) b.remaining -= dt;
+      s.buffs = s.buffs.filter(b => b.remaining > 0);
+    }
+
     // Automation
     runAutomation(dt);
 
@@ -436,6 +451,7 @@
     merged.nebulaUpgrades = s.nebulaUpgrades || {};
     merged.automation = s.automation || {};
     merged.achievements = s.achievements || {};
+    merged.buffs = Array.isArray(s.buffs) ? s.buffs : [];
     if (!Array.isArray(merged.generators) || merged.generators.length !== G.GENERATORS.length) {
       merged.generators = G.GENERATORS.map((_, i) =>
         (s.generators && s.generators[i]) ? s.generators[i] : { count: 0, bought: 0 });

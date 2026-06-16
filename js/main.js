@@ -58,6 +58,7 @@
     if (dt < 0) dt = 0;
 
     G.tick(dt);
+    if (G.events) G.events.update(dt);
     G.ui.refresh();
 
     // autosave

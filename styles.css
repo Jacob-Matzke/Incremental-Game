@@ -302,6 +302,46 @@ html, body {
 .groupbuy .gb-chip .gb-x { font-size: 10px; opacity: 0.7; }
 .groupbuy .gb-actions { display: flex; gap: 8px; }
 
+/* ---------- Cosmic Anomalies (event orbs) ---------- */
+#anomalies { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
+.anomaly {
+  position: absolute; width: 62px; height: 62px; border-radius: 50%;
+  pointer-events: auto; cursor: pointer; border: none; font-size: 26px; color: #fff;
+  background: radial-gradient(circle at 35% 30%, #fff, var(--accent-3) 45%, rgba(255,170,70,0.25) 72%, transparent 80%);
+  box-shadow: 0 0 30px 8px rgba(255,212,121,0.7);
+  animation: anomalyIn .35s ease, anomalyPulse 1.5s ease-in-out infinite .35s;
+}
+.anomaly:hover { filter: brightness(1.25); }
+.anomaly.leaving { animation: anomalyOut .35s ease forwards; }
+@keyframes anomalyIn { from { transform: scale(0) rotate(-90deg); opacity: 0; } }
+@keyframes anomalyOut { to { transform: scale(0); opacity: 0; } }
+@keyframes anomalyPulse { 50% { transform: scale(1.12); box-shadow: 0 0 44px 15px rgba(255,212,121,0.9); } }
+
+/* buff chips in the resource bar */
+#buffbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.buff-chip {
+  position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,212,121,0.12); border: 1px solid var(--accent-3); border-radius: 20px;
+  padding: 4px 12px 5px; font-size: 12px; font-weight: 700; color: var(--accent-3);
+}
+.buff-chip .buff-time { color: var(--text-dim); font-weight: 600; }
+.buff-chip .buff-bar { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--accent-3); }
+
+/* ---------- News ticker ---------- */
+#newsticker {
+  position: fixed; left: 0; right: 0; bottom: 0; height: 26px; z-index: 20;
+  background: rgba(5,6,15,0.82); border-top: 1px solid var(--border);
+  overflow: hidden; display: flex; align-items: center; backdrop-filter: blur(4px);
+}
+#news-track {
+  white-space: nowrap; font-size: 12px; color: var(--text-dim);
+  padding-left: 100%; animation: news 38s linear infinite;
+}
+#news-track .news-item { margin-right: 60px; }
+#news-track .news-item::before { content: "✦ "; color: var(--accent); }
+@keyframes news { to { transform: translateX(-100%); } }
+#content { padding-bottom: 46px; }   /* clear the fixed news ticker */
+
 /* ---------- Automation ---------- */
 .auto-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .auto-card {
