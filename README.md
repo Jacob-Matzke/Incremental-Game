@@ -18,6 +18,10 @@ and progress autosaves to your browser's `localStorage` every 15 seconds.
   raw **Stardust**. Buy higher tiers to accelerate everything beneath them.
 - **Collapse (Prestige 1):** Reset Stardust + generators for **Starlight**, spent
   on a permanent upgrade tree (production, economy, automation, and more).
+- **Condense (Prestige 2):** A deeper reset — wipes Stardust, generators, Starlight
+  *and the whole Starlight tree* for **Nebulae**, spent on a second permanent tree
+  whose boosts persist across every Collapse (×production, Starlight-gain multipliers,
+  "keep Fusion", auto-everything, offline cap, and more).
 - **Fusion (Loop B):** Unlocked in the tree. Your *purchased* generators fuel
   fusion, producing **Stellar Energy**, which multiplies all Stardust production
   and **persists through Collapses** — so the two loops feed each other.
@@ -49,12 +53,18 @@ Data-driven and modular. Adding content rarely means touching engine code.
 - **New Starlight node:** add to `G.STAR_UPGRADES` (give it a `row` and optional
   `req`), then wire its effect in `recalc()` in `game.js`.
 - **New achievement:** add to `G.ACHIEVEMENTS` with a `check(state)` function.
-- **Next prestige layer (planned):** the engine is structured so a second
-  prestige currency (e.g. *Nebula*, resetting Starlight + the tree and unlocking
-  a new tree) slots in alongside `doCollapse`/`collapseGain` with its own tab.
+- **Next prestige layer:** layers 1 (`doCollapse`/`collapseGain`) and 2
+  (`doCondense`/`condenseGain`) share the same shape, so a layer 3 currency that
+  resets Nebulae and unlocks a third tree slots in the same way.
+
+### Balance knobs
+Early-game pacing lives in a few constants — `COLLAPSE_REQ` / `NEBULA_REQ` in
+`js/game.js`, and each generator's `costGrowth` / `baseProd` in `js/content.js`.
+Steeper `costGrowth` and lower `baseProd` slow the runaway; the prestige `*_REQ`
+thresholds set when each layer opens.
 
 ## Roadmap ideas
-- Prestige layer 2 (Nebula) with a second upgrade tree.
+- Prestige layer 3 with a third upgrade tree.
 - A third interlocking loop (e.g. Constellations) consuming Energy.
 - `break_infinity.js` for numbers beyond 1e308.
 - Challenges / modifiers, and milestone-based passive bonuses.

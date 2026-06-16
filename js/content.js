@@ -10,13 +10,17 @@
      below it, creating hyper-exponential growth (Antimatter-Dimensions
      style). Bought with Stardust.
      --------------------------------------------------------------- */
+  // Steep cost growth gates the higher tiers (limiting the polynomial degree
+  // of the cascade), and sub-unity production on tiers 1+ slows the feedback
+  // loop — together these keep early-game pacing a deliberate grind rather
+  // than an immediate runaway.
   G.GENERATORS = [
-    { id: 0, name: "Mote",       icon: "·",  baseCost: 10,    costGrowth: 1.65, baseProd: 1 },
-    { id: 1, name: "Dust Cloud", icon: "∴",  baseCost: 120,   costGrowth: 1.75, baseProd: 1 },
-    { id: 2, name: "Comet",      icon: "☄",  baseCost: 1.5e4, costGrowth: 1.85, baseProd: 1 },
-    { id: 3, name: "Asteroid",   icon: "🜨", baseCost: 2e6,   costGrowth: 1.95, baseProd: 1 },
-    { id: 4, name: "Planet",     icon: "🪐", baseCost: 5e8,   costGrowth: 2.05, baseProd: 1 },
-    { id: 5, name: "Star",       icon: "★",  baseCost: 2e11,  costGrowth: 2.20, baseProd: 1 },
+    { id: 0, name: "Mote",       icon: "·",  baseCost: 10,    costGrowth: 1.85, baseProd: 1 },
+    { id: 1, name: "Dust Cloud", icon: "∴",  baseCost: 250,   costGrowth: 2.05, baseProd: 0.55 },
+    { id: 2, name: "Comet",      icon: "☄",  baseCost: 1.2e4, costGrowth: 2.30, baseProd: 0.40 },
+    { id: 3, name: "Asteroid",   icon: "🜨", baseCost: 8e5,   costGrowth: 2.65, baseProd: 0.30 },
+    { id: 4, name: "Planet",     icon: "🪐", baseCost: 8e8,   costGrowth: 3.05, baseProd: 0.24 },
+    { id: 5, name: "Star",       icon: "★",  baseCost: 3e12,  costGrowth: 3.55, baseProd: 0.20 },
   ];
 
   /* ---------------------------------------------------------------
@@ -52,6 +56,35 @@
   ];
 
   /* ---------------------------------------------------------------
+     NEBULA TREE — prestige LAYER 2. Purchased with Nebulae, gained
+     by Condensing (which resets Stardust, generators, Starlight AND
+     the entire Starlight tree). These boosts persist forever, making
+     each new run through layer 1 dramatically faster — the "new tree
+     each prestige" loop.
+     --------------------------------------------------------------- */
+  G.NEBULA_UPGRADES = [
+    // Row 1
+    { id: "n_prod1", name: "Cosmic Lattice",   row: 1, cost: 1,  desc: "×5 to all Stardust production." },
+    { id: "n_sl1",   name: "Stellar Genesis",  row: 1, cost: 1,  desc: "×3 Starlight gained from Collapse." },
+    { id: "n_start", name: "Echoed Light",     row: 1, cost: 2,  desc: "Begin each Condense already holding 10 Starlight." },
+
+    // Row 2
+    { id: "n_prod2", name: "Dark Nebula",      row: 2, cost: 4,  req: ["n_prod1"], desc: "×25 to all Stardust production." },
+    { id: "n_cost",  name: "Gravity Crush",    row: 2, cost: 3,  desc: "Generators cost 90% less." },
+    { id: "n_fuse",  name: "Eternal Flame",    row: 2, cost: 5,  desc: "Fusion stays ignited after a Condense, and Energy is no longer reset." },
+
+    // Row 3
+    { id: "n_auto",  name: "Autonomic Core",   row: 3, cost: 12, req: ["n_fuse"], desc: "All auto-buyers and Auto-Collapse start unlocked after a Condense." },
+    { id: "n_sl2",   name: "Supernova Bloom",  row: 3, cost: 9,  req: ["n_sl1"], desc: "Starlight gain is raised to the ^1.10 power." },
+    { id: "n_neb",   name: "Nebular Resonance",row: 3, cost: 15, req: ["n_prod1"], desc: "Each Nebula multiplies all production ×1.10 (compounding)." },
+
+    // Row 4
+    { id: "n_prod3", name: "Galactic Filament",row: 4, cost: 40, req: ["n_prod2"], desc: "All Stardust production gains a +0.05 exponent." },
+    { id: "n_offline",name:"Stasis Field",     row: 4, cost: 25, desc: "Offline progress cap +16 hours (24h total)." },
+    { id: "n_synergy",name:"Luminous Web",     row: 4, cost: 60, req: ["n_neb", "n_sl2"], desc: "All production ×(1 + log₁₀(1 + Starlight))." },
+  ];
+
+  /* ---------------------------------------------------------------
      ACHIEVEMENTS — check(state) returns bool. Most grant a small
      permanent global multiplier (mult). A few unlock automations
      EARLY (unlocks: 'autoId') — the reward for striving.
@@ -78,6 +111,11 @@
                        unlocks: "autoCol", mult: 1.20, check: s => s.starlight >= 250 },
     { id: "a_marathon",name: "The Long Haul",    icon: "⏳", desc: "Play for 1 hour total.",               mult: 1.10, check: s => s.stats.timePlayed >= 3600 },
     { id: "a_full",    name: "Enlightened",      icon: "🌟", desc: "Purchase every Starlight upgrade.",    mult: 1.25, check: s => G.STAR_UPGRADES.every(u => s.upgrades[u.id]) },
+    // Prestige layer 2 (Nebula / Condense)
+    { id: "a_condense",name: "Reborn",           icon: "🌫", desc: "Perform your first Condense.",          mult: 1.25, check: s => s.condenses >= 1 },
+    { id: "a_neb10",   name: "Nebula Nursery",   icon: "🌠", desc: "Hold 10 Nebulae at once.",             mult: 1.20, check: s => s.nebulae >= 10 },
+    { id: "a_condense5",name:"Cycle of Rebirth", icon: "♻", desc: "Condense 5 times.",                     mult: 1.30, check: s => s.condenses >= 5 },
+    { id: "a_nebfull", name: "Transcendent",     icon: "💠", desc: "Purchase every Nebula upgrade.",       mult: 1.40, check: s => G.NEBULA_UPGRADES.every(u => s.nebulaUpgrades[u.id]) },
   ];
 
   /* ---------------------------------------------------------------
@@ -85,12 +123,12 @@
      toggle is available (via tree node OR achievement override).
      --------------------------------------------------------------- */
   G.AUTOMATIONS = [
-    { id: "auto_g0", name: "Auto-Mote",       gen: 0, desc: "Automatically buy Motes.",       unlock: s => G.has("autoLow") },
-    { id: "auto_g1", name: "Auto-Dust Cloud", gen: 1, desc: "Automatically buy Dust Clouds.", unlock: s => G.has("autoLow") },
-    { id: "auto_g2", name: "Auto-Comet",      gen: 2, desc: "Automatically buy Comets.",      unlock: s => G.has("autoLow") },
-    { id: "auto_g3", name: "Auto-Asteroid",   gen: 3, desc: "Automatically buy Asteroids.",   unlock: s => G.has("autoHigh") },
-    { id: "auto_g4", name: "Auto-Planet",     gen: 4, desc: "Automatically buy Planets.",     unlock: s => G.has("autoHigh") },
-    { id: "auto_g5", name: "Auto-Star",       gen: 5, desc: "Automatically buy Stars.",       unlock: s => G.has("autoHigh") },
-    { id: "auto_collapse", name: "Auto-Collapse", desc: "Automatically Collapse on an interval (configurable below).", unlock: s => G.has("autoCol") },
+    { id: "auto_g0", name: "Auto-Mote",       gen: 0, desc: "Automatically buy Motes.",       unlock: s => G.has("autoLow")  || G.nh("n_auto") },
+    { id: "auto_g1", name: "Auto-Dust Cloud", gen: 1, desc: "Automatically buy Dust Clouds.", unlock: s => G.has("autoLow")  || G.nh("n_auto") },
+    { id: "auto_g2", name: "Auto-Comet",      gen: 2, desc: "Automatically buy Comets.",      unlock: s => G.has("autoLow")  || G.nh("n_auto") },
+    { id: "auto_g3", name: "Auto-Asteroid",   gen: 3, desc: "Automatically buy Asteroids.",   unlock: s => G.has("autoHigh") || G.nh("n_auto") },
+    { id: "auto_g4", name: "Auto-Planet",     gen: 4, desc: "Automatically buy Planets.",     unlock: s => G.has("autoHigh") || G.nh("n_auto") },
+    { id: "auto_g5", name: "Auto-Star",       gen: 5, desc: "Automatically buy Stars.",       unlock: s => G.has("autoHigh") || G.nh("n_auto") },
+    { id: "auto_collapse", name: "Auto-Collapse", desc: "Automatically Collapse on an interval (configurable below).", unlock: s => G.has("autoCol") || G.nh("n_auto") },
   ];
 })();

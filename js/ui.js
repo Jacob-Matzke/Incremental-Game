@@ -20,6 +20,8 @@
     { id: "cosmos",       label: "✦ Cosmos",       show: () => true },
     { id: "collapse",     label: "💫 Collapse",     show: s => s.totalStardust >= 1e3 || s.collapses > 0,
                           notif: s => G.canCollapse() ? "!" : null },
+    { id: "nebula",       label: "🌫 Nebula",       show: s => s.totalStarlight >= G.NEBULA_REQ / 5 || s.condenses > 0,
+                          notif: s => G.canCondense() ? "!" : null },
     { id: "fusion",       label: "⚛ Fusion",       show: s => s.fusionUnlocked },
     { id: "automation",   label: "🤖 Automation",   show: s => s.collapses > 0 },
     { id: "achievements", label: "🏆 Achievements", show: () => true,
@@ -75,10 +77,13 @@
     const s = G.state;
     const el = document.getElementById("resources");
     const showSL = s.collapses > 0 || s.totalStardust >= 1e3;
+    const showNeb = s.condenses > 0 || s.totalStarlight >= G.NEBULA_REQ / 5;
     const parts = [];
     parts.push(resHtml("stardust", "Stardust", G.fmt(s.stardust, "floor"), "+" + G.fmtRate(G.cache.stardustRate)));
     if (showSL) parts.push(resHtml("starlight", "Starlight", G.fmtInt(s.starlight),
       G.canCollapse() ? "+" + G.fmtInt(G.cache.slGain) + " ready" : ""));
+    if (showNeb) parts.push(resHtml("nebula", "Nebulae", G.fmtInt(s.nebulae),
+      G.canCondense() ? "+" + G.fmtInt(G.condenseGain(s)) + " ready" : ""));
     if (s.fusionUnlocked) parts.push(resHtml("energy", "Stellar Energy", G.fmt(s.energy, "floor"),
       "+" + G.fmtRate(G.cache.energyRate) + " · ×" + G.cache.energyMult.toFixed(2)));
     el.innerHTML = parts.join("");
@@ -359,6 +364,78 @@
     return true;
   };
 
+  /* ---------------- NEBULA tab (prestige layer 2) ---------------- */
+  function buildNebula() {
+    const el = document.getElementById("tab-nebula");
+    el.innerHTML = `
+      <div class="prestige-hero" style="border-color:rgba(255,140,200,0.5)">
+        <h2 style="color:#ff8cc8">🌫 Condense</h2>
+        <div class="req" id="neb-req"></div>
+        <div class="gain" id="neb-gain" style="color:#ff8cc8;text-shadow:0 0 16px rgba(255,140,200,0.5)"></div>
+        <p class="hint" style="max-width:580px;margin:10px auto">Condense your accumulated Starlight into
+          <b style="color:#ff8cc8">Nebulae</b>. This is a deeper reset — it wipes Stardust, generators,
+          Starlight <i>and</i> the entire Starlight tree — but Nebulae buy permanent upgrades that carry
+          across every Collapse, making each future run far faster.</p>
+        <button class="btn big" id="neb-btn" style="background:linear-gradient(180deg,rgba(255,140,200,0.2),rgba(255,140,200,0.07));border-color:rgba(255,140,200,0.6)">Condense</button>
+      </div>
+      <div class="section-title">Nebula Tree</div>
+      <div class="tree" id="neb-tree"></div>`;
+
+    el.querySelector("#neb-btn").onclick = () => {
+      if (!G.canCondense()) return;
+      if (confirm("Condense now? This resets ALL of layer 1 (Stardust, generators, Starlight, and the Starlight tree) in exchange for " + G.fmtInt(G.condenseGain(G.state)) + " Nebulae.")) {
+        G.doCondense(false);
+      }
+    };
+
+    const tree = el.querySelector("#neb-tree");
+    const rows = {};
+    for (const u of G.NEBULA_UPGRADES) (rows[u.row] = rows[u.row] || []).push(u);
+    Object.keys(rows).sort((a, b) => a - b).forEach(r => {
+      const rowEl = document.createElement("div");
+      rowEl.className = "tree-row";
+      rows[r].forEach(u => {
+        const node = document.createElement("div");
+        node.className = "node nebula-node";
+        node.dataset.nup = u.id;
+        node.innerHTML = `
+          <div class="node-name">${u.name}</div>
+          <div class="node-desc">${u.desc}</div>
+          <div class="node-cost"></div>`;
+        node.onclick = () => { if (G.buyNebula(u.id)) { refreshNebula(); ui.markDirty("automation"); } };
+        rowEl.appendChild(node);
+      });
+      tree.appendChild(rowEl);
+    });
+  }
+
+  function refreshNebula() {
+    const s = G.state;
+    const can = G.canCondense();
+    const reqEl = document.getElementById("neb-req");
+    const gainEl = document.getElementById("neb-gain");
+    if (reqEl) reqEl.textContent = can
+      ? "Ready to condense"
+      : "Requires " + G.fmtInt(G.NEBULA_REQ) + " Starlight (have " + G.fmtInt(s.starlight) + ")";
+    if (gainEl) gainEl.textContent = "+" + G.fmtInt(G.condenseGain(s)) + " Nebulae";
+    const btn = document.getElementById("neb-btn");
+    if (btn) btn.classList.toggle("cant", !can);
+
+    document.querySelectorAll("#neb-tree .node").forEach(node => {
+      const u = G.NEBULA_UPGRADES.find(x => x.id === node.dataset.nup);
+      const owned = !!s.nebulaUpgrades[u.id];
+      const reqMet = (u.req || []).every(r => s.nebulaUpgrades[r]);
+      const affordable = !owned && reqMet && s.nebulae >= u.cost;
+      node.classList.toggle("owned", owned);
+      node.classList.toggle("locked", !owned && !reqMet);
+      node.classList.toggle("affordable", affordable);
+      const costEl = node.querySelector(".node-cost");
+      if (owned) costEl.innerHTML = `<span class="node-owned-tag">✓ Purchased</span>`;
+      else if (!reqMet) costEl.innerHTML = `<span style="color:var(--text-dim)">Requires: ${u.req.map(r => G.NEBULA_UPGRADES.find(x => x.id === r).name).join(", ")}</span>`;
+      else costEl.innerHTML = `<span style="color:${affordable ? "#ff8cc8" : "var(--bad)"}">${G.fmtInt(u.cost)} Nebulae</span>`;
+    });
+  }
+
   /* ---------------- FUSION tab ---------------- */
   function buildFusion() {
     const el = document.getElementById("tab-fusion");
@@ -472,11 +549,15 @@
       stat("Starlight", G.fmtInt(s.starlight)) +
       stat("Total Starlight", G.fmtInt(s.totalStarlight)) +
       stat("Collapses", G.fmtInt(s.collapses)) +
+      stat("Nebulae", G.fmtInt(s.nebulae)) +
+      stat("Total Nebulae", G.fmtInt(s.totalNebulae)) +
+      stat("Condenses", G.fmtInt(s.condenses)) +
       stat("Production Multiplier", "×" + G.fmt(G.cache.prodMult)) +
       stat("Stellar Energy", s.fusionUnlocked ? G.fmt(s.energy) : "—") +
       stat("Energy Boost", s.fusionUnlocked ? "×" + G.cache.energyMult.toFixed(3) : "—") +
       stat("Achievements", G.ACHIEVEMENTS.filter(a => s.achievements[a.id]).length + "/" + G.ACHIEVEMENTS.length) +
-      stat("Upgrades Owned", Object.keys(s.upgrades).length + "/" + G.STAR_UPGRADES.length) +
+      stat("Starlight Upgrades", Object.keys(s.upgrades).length + "/" + G.STAR_UPGRADES.length) +
+      stat("Nebula Upgrades", Object.keys(s.nebulaUpgrades).length + "/" + G.NEBULA_UPGRADES.length) +
       stat("Time Played", G.fmtTime(s.stats.timePlayed));
   }
   function stat(label, value) {
@@ -568,12 +649,12 @@
 
   /* ---------------- dispatch ---------------- */
   const BUILDERS = {
-    cosmos: buildCosmos, collapse: buildCollapse, fusion: buildFusion,
+    cosmos: buildCosmos, collapse: buildCollapse, nebula: buildNebula, fusion: buildFusion,
     automation: buildAutomation, achievements: buildAchievements,
     stats: buildStats, settings: buildSettings,
   };
   const REFRESHERS = {
-    cosmos: refreshCosmos, collapse: refreshCollapse, fusion: refreshFusion,
+    cosmos: refreshCosmos, collapse: refreshCollapse, nebula: refreshNebula, fusion: refreshFusion,
     automation: refreshAutomation, achievements: refreshAchievements,
     stats: refreshStats, settings: refreshSettings,
   };

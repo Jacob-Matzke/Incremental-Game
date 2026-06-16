@@ -102,6 +102,7 @@ html, body {
 }
 .res.stardust .res-val { color: var(--accent); }
 .res.starlight .res-val { color: var(--accent-2); }
+.res.nebula .res-val { color: #ff8cc8; }
 .res.energy .res-val { color: var(--accent-3); }
 
 /* ---------- Tabs ---------- */
@@ -264,6 +265,8 @@ html, body {
 .node.affordable { border-color: var(--accent-2); box-shadow: 0 0 14px rgba(183,139,255,0.35); }
 .node.owned { border-color: var(--good); background: rgba(40,80,60,0.35); }
 .node .node-name { font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--accent-2); }
+.node.nebula-node .node-name { color: #ff8cc8; }
+.node.nebula-node.affordable { border-color: #ff8cc8; box-shadow: 0 0 14px rgba(255, 140, 200, 0.35); }
 .node.owned .node-name { color: var(--good); }
 .node .node-desc { font-size: 12px; color: var(--text-dim); line-height: 1.4; min-height: 34px; }
 .node .node-cost { font-size: 12px; font-weight: 700; margin-top: 8px; }

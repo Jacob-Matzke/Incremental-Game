@@ -3,9 +3,10 @@
    ===================================================================== */
 (function () {
   const SAVE_KEY = "stardust_ascendant_save";
-  const SAVE_VERSION = 1;
-  const OFFLINE_CAP = 8 * 3600;   // max 8 hours of offline progress
-  const COLLAPSE_REQ = 1e4;       // stardust needed for the first/any collapse to give >=1
+  const SAVE_VERSION = 2;
+  const OFFLINE_BASE_CAP = 8 * 3600;   // base 8 hours of offline progress
+  const COLLAPSE_REQ = 1e5;       // total Stardust needed for a Collapse to give >=1 Starlight
+  const NEBULA_REQ = 1000;        // Starlight needed for a Condense to give >=1 Nebula
 
   /* ---------------- default state ---------------- */
   function freshState() {
@@ -18,7 +19,13 @@
       starlight: 0,
       totalStarlight: 0,
       collapses: 0,
-      upgrades: {},                       // { upgradeId: true }
+      upgrades: {},                       // { upgradeId: true }   (Starlight tree — reset on Condense)
+
+      // Prestige layer 2
+      nebulae: 0,
+      totalNebulae: 0,
+      condenses: 0,
+      nebulaUpgrades: {},                 // { nebulaId: true }    (persists across Condense)
 
       fusionUnlocked: false,
       energy: 0,
@@ -38,7 +45,9 @@
         timePlayed: 0,
         started: Date.now(),
         bestStarlight: 0,
+        bestNebulae: 0,
         totalCollapses: 0,
+        totalCondenses: 0,
       },
       lastSave: Date.now(),
     };
@@ -57,13 +66,15 @@
   };
 
   /* ---------------- helpers ---------------- */
-  G.has = id => !!(G.state && G.state.upgrades[id]);
+  G.has = id => !!(G.state && G.state.upgrades[id]);                 // Starlight tree owned
+  G.nh  = id => !!(G.state && G.state.nebulaUpgrades && G.state.nebulaUpgrades[id]); // Nebula tree owned
   G.autoOn = id => !!(G.state && G.state.automation[id]);
   G.autoUnlocked = id => {
     const a = G.AUTOMATIONS.find(x => x.id === id);
     return a ? a.unlock(G.state) : false;
   };
   G.COLLAPSE_REQ = COLLAPSE_REQ;
+  G.NEBULA_REQ = NEBULA_REQ;
 
   /* ---------------- recalc multipliers (cheap; run each tick) ---------------- */
   function recalc() {
@@ -75,6 +86,12 @@
     if (G.has("prod2")) m *= 5;
     if (G.has("prod3")) m *= 10;
     if (G.has("synergy")) m *= Math.pow(1.02, s.generators[5].count);
+
+    // Nebula tree — production (persists across Condense)
+    if (G.nh("n_prod1")) m *= 5;
+    if (G.nh("n_prod2")) m *= 25;
+    if (G.nh("n_neb"))    m *= Math.pow(1.10, s.nebulae);
+    if (G.nh("n_synergy")) m *= 1 + Math.log10(1 + s.starlight);
 
     // Achievements (product of all completed mults)
     let am = 1;
@@ -93,12 +110,16 @@
 
     G.cache.prodMult = m;
 
-    // Production exponent
-    G.cache.prodPow = G.has("prod4") ? 1.04 : 1;
+    // Production exponent (additive bonuses combine)
+    let pow = 1;
+    if (G.has("prod4")) pow += 0.04;
+    if (G.nh("n_prod3")) pow += 0.05;
+    G.cache.prodPow = pow;
 
     // Cost multiplier
     let cm = 1;
     if (G.has("cost1")) cm *= 0.6;
+    if (G.nh("n_cost")) cm *= 0.1;
     G.cache.costMult = cm;
 
     // Energy generation rate (driven by player-bought generators -> the loops feed each other)
@@ -166,12 +187,14 @@
   }
   G.buyGenerator = buyGenerator;
 
-  /* ---------------- prestige: Collapse -> Starlight ---------------- */
+  /* ---------------- prestige 1: Collapse -> Starlight ---------------- */
   function collapseGain(s) {
     if (s.totalStardust < COLLAPSE_REQ) return 0;
     let g = Math.pow(s.totalStardust / COLLAPSE_REQ, 0.5);
     if (G.has("slgain1")) g *= 2;
+    if (G.nh("n_sl1"))    g *= 3;
     if (G.has("slgain2")) g = Math.pow(g, 1.08);
+    if (G.nh("n_sl2"))    g = Math.pow(g, 1.10);
     return Math.floor(g);
   }
 
@@ -206,6 +229,63 @@
     return true;
   }
   G.doCollapse = doCollapse;
+
+  /* ---------------- prestige 2: Condense -> Nebulae ---------------- */
+  function condenseGain(s) {
+    if (s.starlight < NEBULA_REQ) return 0;
+    let g = Math.pow(s.starlight / NEBULA_REQ, 0.5);
+    return Math.floor(g);
+  }
+  G.condenseGain = condenseGain;
+  function canCondense() { return condenseGain(G.state) >= 1; }
+  G.canCondense = canCondense;
+
+  function doCondense(silent) {
+    const s = G.state;
+    const gain = condenseGain(s);
+    if (gain < 1) return false;
+
+    s.nebulae += gain;
+    s.totalNebulae += gain;
+    s.condenses += 1;
+    s.stats.totalCondenses += 1;
+    if (s.nebulae > s.stats.bestNebulae) s.stats.bestNebulae = s.nebulae;
+
+    // Condense resets ALL of layer 1: Stardust, generators, Starlight, the
+    // entire Starlight tree, collapses, and (unless Eternal Flame) Fusion.
+    s.stardust = 10;
+    s.totalStardust = 10;
+    s.generators = G.GENERATORS.map(() => ({ count: 0, bought: 0 }));
+    s.starlight = 0;
+    s.upgrades = {};
+    s.collapses = 0;
+    s._autoCollapseTimer = 0;
+    if (!G.nh("n_fuse")) { s.fusionUnlocked = false; s.energy = 0; }
+
+    // Nebula starting bonuses.
+    if (G.nh("n_start")) s.starlight = 10;
+
+    recalc();
+    if (!silent) {
+      G.toast("🌫 Condense!", "Gained " + G.fmtInt(gain) + " Nebulae. A new cosmos awaits.");
+      G.ui.rebuildAll();
+    }
+    return true;
+  }
+  G.doCondense = doCondense;
+
+  // Purchase a Nebula upgrade (mirrors buyUpgrade but on the persistent tree).
+  G.buyNebula = function (id) {
+    const s = G.state;
+    const u = G.NEBULA_UPGRADES.find(x => x.id === id);
+    if (!u || s.nebulaUpgrades[id]) return false;
+    if (!(u.req || []).every(r => s.nebulaUpgrades[r])) return false;
+    if (s.nebulae < u.cost) return false;
+    s.nebulae -= u.cost;
+    s.nebulaUpgrades[id] = true;
+    recalc();
+    return true;
+  };
 
   /* ---------------- the simulation tick ---------------- */
   // dt in seconds. Euler integration of the cascading generator chain.
@@ -316,6 +396,7 @@
     merged.settings = Object.assign({}, def.settings, s.settings || {});
     merged.stats = Object.assign({}, def.stats, s.stats || {});
     merged.upgrades = s.upgrades || {};
+    merged.nebulaUpgrades = s.nebulaUpgrades || {};
     merged.automation = s.automation || {};
     merged.achievements = s.achievements || {};
     if (!Array.isArray(merged.generators) || merged.generators.length !== G.GENERATORS.length) {
@@ -370,7 +451,8 @@
     const now = Date.now();
     let elapsed = (now - (s.lastSave || now)) / 1000;
     if (elapsed < 1) return;
-    elapsed = Math.min(elapsed, OFFLINE_CAP);
+    const cap = OFFLINE_BASE_CAP + (G.nh("n_offline") ? 16 * 3600 : 0);
+    elapsed = Math.min(elapsed, cap);
     // simulate in chunks for cascade accuracy (suppress per-achievement toasts)
     const steps = Math.min(600, Math.max(1, Math.floor(elapsed)));
     const dt = elapsed / steps;
