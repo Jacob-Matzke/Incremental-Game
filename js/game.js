@@ -55,6 +55,7 @@
       _autoCollapseTimer: 0,
 
       achievements: {},                   // { achId: true }
+      milestones: {},                     // { milestoneKey: true } — for one-time toasts
 
       buffs: [],                          // active Cosmic Anomaly buffs (timed)
 
@@ -86,6 +87,8 @@
     slGainRaw: 0,       // unfloored version — used by Perpetual Collapse passive
     achMult: 1,
     eventMult: 1,       // product of active Cosmic Anomaly buffs
+    milestoneMult: 1,   // production from prestige-count milestones
+    milestoneAutos: new Set(),  // auto-buyer ids granted free by milestones
   };
 
   /* ---------------- helpers ---------------- */
@@ -93,6 +96,7 @@
   G.nh  = id => !!(G.state && G.state.nebulaUpgrades && G.state.nebulaUpgrades[id]); // Nebula tree owned
   G.autoOn = id => !!(G.state && G.state.automation[id]);
   G.autoUnlocked = id => {
+    if (G.cache.milestoneAutos && G.cache.milestoneAutos.has(id)) return true;  // free via milestone
     const a = G.AUTOMATIONS.find(x => x.id === id);
     return a ? a.unlock(G.state) : false;
   };
@@ -116,6 +120,19 @@
     if (G.nh("n_prod2")) m *= 25;
     if (G.nh("n_neb"))    m *= Math.pow(1.10, s.nebulae);
     if (G.nh("n_synergy")) m *= 1 + Math.log10(1 + s.starlight);
+
+    // Milestones (passive rewards for prestiging a lot)
+    let msMult = 1, msPow = 0; const msAutos = G.cache.milestoneAutos; msAutos.clear();
+    for (const ms of G.MILESTONES) {
+      const count = ms.type === "collapse" ? s.stats.totalCollapses : s.stats.totalCondenses;
+      if (count >= ms.req) {
+        if (ms.mult) msMult *= ms.mult;
+        if (ms.pow) msPow += ms.pow;
+        if (ms.autos) for (const a of ms.autos) msAutos.add(a);
+      }
+    }
+    G.cache.milestoneMult = msMult;
+    m *= msMult;
 
     // Achievements (product of all completed mults)
     let am = 1;
@@ -144,6 +161,7 @@
     let pow = 1;
     if (G.has("prod4")) pow += 0.04;
     if (G.nh("n_prod3")) pow += 0.05;
+    pow += msPow;
     G.cache.prodPow = pow;
 
     // Cost multiplier
@@ -377,8 +395,24 @@
     s.stats.timePlayed += dt;
 
     checkAchievements();
+    checkMilestones();
   }
   G.tick = tick;
+
+  // Toast newly-reached milestones once.
+  function checkMilestones() {
+    const s = G.state;
+    for (const ms of G.MILESTONES) {
+      const key = ms.type + ms.req;
+      if (s.milestones[key]) continue;
+      const count = ms.type === "collapse" ? s.stats.totalCollapses : s.stats.totalCondenses;
+      if (count >= ms.req) {
+        s.milestones[key] = true;
+        if (!G._silentToast) G.toast("🌟 Milestone: " + ms.name, ms.desc);
+        if (G.ui) { G.ui.markDirty("collapse"); G.ui.markDirty("nebula"); G.ui.markDirty("automation"); }
+      }
+    }
+  }
 
   function runAutomation(dt) {
     const s = G.state;
@@ -451,6 +485,7 @@
     merged.nebulaUpgrades = s.nebulaUpgrades || {};
     merged.automation = s.automation || {};
     merged.achievements = s.achievements || {};
+    merged.milestones = s.milestones || {};
     merged.buffs = Array.isArray(s.buffs) ? s.buffs : [];
     if (!Array.isArray(merged.generators) || merged.generators.length !== G.GENERATORS.length) {
       merged.generators = G.GENERATORS.map((_, i) =>

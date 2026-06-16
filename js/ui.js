@@ -206,6 +206,9 @@
           but Starlight buys permanent upgrades that make every future run faster.</p>
         <button class="btn violet big" id="col-btn">Collapse</button>
       </div>
+      <div class="section-title">Collapse Milestones</div>
+      <p class="hint" style="margin-top:-6px">Permanent rewards just for Collapsing more — nothing to spend.</p>
+      <div class="ms-grid" id="col-ms"></div>
       <div class="section-title">Starlight Tree</div>
       <p class="hint" style="margin-top:-6px">Left-click to buy. <b>Right-click</b> a node to add it
         to a group-buy plan (its prerequisites come along automatically).</p>
@@ -213,6 +216,7 @@
       <div class="tree" id="tree"></div>`;
 
     el.querySelector("#col-btn").onclick = () => G.doCollapse(false);
+    buildMilestones("col-ms", "collapse");
 
     // tree, grouped by row
     const tree = el.querySelector("#tree");
@@ -345,6 +349,36 @@
     });
 
     refreshGroupBar();
+    refreshMilestones("col-ms", "collapse");
+  }
+
+  /* ---------------- milestones (shared by Collapse & Nebula tabs) ---------------- */
+  function buildMilestones(containerId, type) {
+    const grid = document.getElementById(containerId);
+    if (!grid) return;
+    grid.innerHTML = "";
+    for (const ms of G.MILESTONES.filter(m => m.type === type)) {
+      const d = document.createElement("div");
+      d.className = "ms";
+      d.dataset.req = ms.req;
+      d.innerHTML = `
+        <div class="ms-head"><span class="ms-req">${type === "collapse" ? "💫" : "🌫"} ${G.fmtInt(ms.req)}</span>
+          <span class="ms-status"></span></div>
+        <div class="ms-name">${ms.name}</div>
+        <div class="ms-desc">${ms.desc}</div>`;
+      grid.appendChild(d);
+    }
+  }
+  function refreshMilestones(containerId, type) {
+    const grid = document.getElementById(containerId);
+    if (!grid) return;
+    const count = type === "collapse" ? G.state.stats.totalCollapses : G.state.stats.totalCondenses;
+    grid.querySelectorAll(".ms").forEach(d => {
+      const req = +d.dataset.req;
+      const done = count >= req;
+      d.classList.toggle("done", done);
+      d.querySelector(".ms-status").textContent = done ? "✓" : G.fmtInt(count) + " / " + G.fmtInt(req);
+    });
   }
 
   // upgrade purchase (kept here for locality with the tree UI)
@@ -380,6 +414,9 @@
           across every Collapse, making each future run far faster.</p>
         <button class="btn big" id="neb-btn" style="background:linear-gradient(180deg,rgba(255,140,200,0.2),rgba(255,140,200,0.07));border-color:rgba(255,140,200,0.6)">Condense</button>
       </div>
+      <div class="section-title">Condense Milestones</div>
+      <p class="hint" style="margin-top:-6px">Permanent rewards just for Condensing more.</p>
+      <div class="ms-grid" id="neb-ms"></div>
       <div class="section-title">Nebula Tree</div>
       <div class="tree" id="neb-tree"></div>`;
 
@@ -389,6 +426,7 @@
         G.doCondense(false);
       }
     };
+    buildMilestones("neb-ms", "condense");
 
     const tree = el.querySelector("#neb-tree");
     const rows = {};
@@ -436,6 +474,7 @@
       else if (!reqMet) costEl.innerHTML = `<span style="color:var(--text-dim)">Requires: ${u.req.map(r => G.NEBULA_UPGRADES.find(x => x.id === r).name).join(", ")}</span>`;
       else costEl.innerHTML = `<span style="color:${affordable ? "#ff8cc8" : "var(--bad)"}">${G.fmtInt(u.cost)} Nebulae</span>`;
     });
+    refreshMilestones("neb-ms", "condense");
   }
 
   /* ---------------- FUSION tab ---------------- */

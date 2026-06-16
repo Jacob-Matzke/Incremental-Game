@@ -140,4 +140,32 @@
     { id: "auto_g5", name: "Auto-Star",       gen: 5, desc: "Automatically buy Stars.",       unlock: s => G.has("autoHigh") || G.nh("n_auto") },
     { id: "auto_collapse", name: "Auto-Collapse", desc: "Automatically Collapse on an interval (configurable below).", unlock: s => G.has("autoCol") || G.nh("n_auto") },
   ];
+
+  /* ---------------------------------------------------------------
+     MILESTONES — passive rewards for simply prestiging more, by
+     cumulative Collapse / Condense count. They hand out production
+     and free automation "just by playing", giving a constant stream
+     of near-term goals and cutting tedium (cf. AD's Eternity
+     Milestones). `mult` = global production ×, `pow` adds to the
+     production exponent, `autos` unlocks those auto-buyers for free.
+     --------------------------------------------------------------- */
+  G.MILESTONES = [
+    // Collapse milestones (by total Collapses ever)
+    { type: "collapse", req: 3,    name: "Getting the Hang of It", mult: 1.5, desc: "×1.5 production" },
+    { type: "collapse", req: 10,   name: "Muscle Memory",          autos: ["auto_g0"], desc: "Auto-buy Mote (free)" },
+    { type: "collapse", req: 25,   name: "Serial Collapser",       mult: 2, desc: "×2 production" },
+    { type: "collapse", req: 50,   name: "Assembly Line",          autos: ["auto_g1", "auto_g2"], desc: "Auto-buy Dust Cloud & Comet (free)" },
+    { type: "collapse", req: 100,  name: "Centurion",              mult: 3, desc: "×3 production" },
+    { type: "collapse", req: 200,  name: "Hands Free",             autos: ["auto_collapse"], desc: "Auto-Collapse (free)" },
+    { type: "collapse", req: 500,  name: "Relentless",             mult: 5, desc: "×5 production" },
+    { type: "collapse", req: 1000, name: "Unstoppable",            pow: 0.01, desc: "+0.01 production exponent" },
+
+    // Condense milestones (by total Condenses ever)
+    { type: "condense", req: 1,    name: "Second Genesis",         mult: 2, desc: "×2 production" },
+    { type: "condense", req: 3,    name: "Nebular Drones",         autos: ["auto_g0", "auto_g1", "auto_g2"], desc: "Low-tier auto-buyers (free)" },
+    { type: "condense", req: 10,   name: "Full Fleet",             mult: 3, autos: ["auto_g3", "auto_g4", "auto_g5"], desc: "×3 production + high-tier auto-buyers (free)" },
+    { type: "condense", req: 25,   name: "Perpetual Motion",       mult: 5, autos: ["auto_collapse"], desc: "×5 production + Auto-Collapse (free)" },
+    { type: "condense", req: 50,   name: "Nebula Lord",            mult: 10, desc: "×10 production" },
+    { type: "condense", req: 100,  name: "Transcendent Drift",     pow: 0.02, desc: "+0.02 production exponent" },
+  ];
 })();
