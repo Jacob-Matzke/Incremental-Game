@@ -704,6 +704,10 @@
           <label class="switch"><input type="checkbox" id="set-events"><span class="slider"></span></label>
           <span>Cosmic Anomalies (clickable bonus orbs)</span>
         </div>
+        <div class="settings-row" style="color:var(--text-dim);font-size:12px;display:block">
+          <b>Shortcuts:</b> <kbd>1</kbd>–<kbd>9</kbd> switch tabs · <kbd>C</kbd> Collapse ·
+          <kbd>X</kbd> Condense · <kbd>M</kbd> cycle Buy amount
+        </div>
       </div>
       <div class="settings-block">
         <h3 style="color:var(--bad)">Danger Zone</h3>
@@ -792,6 +796,7 @@
   ui.refresh = function () {
     renderNav();
     refreshResources();
+    refreshObjective();
     const id = G.state.activeTab;
     if (dirty.has(id)) renderTab(id);
     if (REFRESHERS[id]) REFRESHERS[id]();
@@ -800,7 +805,72 @@
   ui.init = function () {
     renderNav();
     switchTab(G.state.activeTab || "cosmos");
+    initNews();
   };
+
+  /* ---------------- objective hint (onboarding/guidance) ---------------- */
+  function nextObjective(s) {
+    if (s.activeTrial) { const t = G.trialDef(s.activeTrial); return `Trial — reach ${G.fmt(t.goal)} total Stardust (have ${G.fmt(s.totalStardust)}).`; }
+    if (s.generators[0].bought === 0) return "Buy your first Mote in the Cosmos tab to begin.";
+    if (s.totalStardust < 1e3 && s.collapses === 0 && s.condenses === 0) return "Keep buying generators — reach 1,000 Stardust to reveal Collapse.";
+    if (s.collapses === 0 && s.condenses === 0) return G.canCollapse() ? "Collapse now for your first Starlight!" : "Grow total Stardust until a Collapse is worth ≥1 Starlight.";
+    if (!s.fusionUnlocked && !G.has("fusion") && !G.nh("n_fuse")) return "Spend Starlight on the tree — Ignite Fusion to start the second loop.";
+    if (s.condenses === 0 && s.totalStarlight < G.NEBULA_REQ) return `Build toward ${G.fmtInt(G.NEBULA_REQ)} Starlight to unlock your first Condense.`;
+    if (s.condenses === 0 && G.canCondense()) return "Condense into Nebulae — a deeper reset with permanent boosts!";
+    const tips = ["Climb the Starlight & Nebula trees for compounding boosts.",
+      "Chase Collapse/Condense milestones for free production & automation.",
+      "Catch Cosmic Anomalies for big temporary buffs.",
+      "Take on a Trial for a permanent reward."];
+    return tips[Math.floor(s.stats.timePlayed / 12) % tips.length];
+  }
+  function refreshObjective() {
+    const el = document.getElementById("objective");
+    if (!el) return;
+    el.textContent = "🎯 " + nextObjective(G.state);
+  }
+
+  /* ---------------- news ticker (flavor + reactive lines) ---------------- */
+  const newsQueue = [];
+  let _nseed = 7;
+  function nrand() { _nseed = (_nseed * 1103515245 + 12345) & 0x7fffffff; return _nseed / 0x7fffffff; }
+  const FLAVOR = [
+    "The void hums with quiet potential.",
+    "Somewhere, a star quietly ignites.",
+    "Cosmic dust drifts on solar winds.",
+    "Astronomers baffled by sudden Stardust surplus.",
+    "Local nebula reportedly 'feeling condensed'.",
+    "Gravity: still doing its job, thanklessly.",
+    "Breaking: entropy postponed indefinitely.",
+    "A comet waves as it passes by.",
+    "The universe expands; so does your portfolio.",
+    "Dark matter declines to comment.",
+  ];
+  function dynamicLine() {
+    const s = G.state;
+    const pool = FLAVOR.slice();
+    pool.push(`Stardust streams in at ${G.fmtRate(G.cache.stardustRate)}.`);
+    if (s.collapses > 0) pool.push(`You have collapsed the cosmos ${G.fmtInt(s.collapses)} time(s).`);
+    if (s.totalStarlight > 0) pool.push(`Starlight gathered: ${G.fmtInt(s.starlight)}.`);
+    if (s.condenses > 0) pool.push(`Nebulae held: ${G.fmtInt(s.nebulae)} across ${G.fmtInt(s.condenses)} condense(s).`);
+    if (s.buffs && s.buffs.length) pool.push(`A cosmic buff surges through your generators!`);
+    const done = G.ACHIEVEMENTS.filter(a => s.achievements[a.id]).length;
+    pool.push(`Achievements unlocked: ${done}/${G.ACHIEVEMENTS.length}.`);
+    return pool[Math.floor(nrand() * pool.length)];
+  }
+  function nextNews() {
+    const track = document.getElementById("news-track");
+    if (!track) return;
+    const msg = newsQueue.length ? newsQueue.shift() : dynamicLine();
+    track.innerHTML = `<span class="news-item">${msg}</span>`;
+  }
+  function initNews() {
+    const track = document.getElementById("news-track");
+    if (!track) return;
+    track.addEventListener("animationiteration", nextNews);
+    nextNews();
+  }
+  // Other modules push reactive headlines here.
+  G.news = msg => { if (newsQueue.length < 6) newsQueue.push(msg); };
 
   /* ---------------- toasts ---------------- */
   G.toast = function (title, body) {

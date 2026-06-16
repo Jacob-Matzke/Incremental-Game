@@ -86,7 +86,32 @@
     // save on exit
     window.addEventListener("beforeunload", () => G.save());
 
+    initHotkeys();
     requestAnimationFrame(t => { last = t; requestAnimationFrame(loop); });
+  }
+
+  /* ---------------- keyboard shortcuts ---------------- */
+  function initHotkeys() {
+    window.addEventListener("keydown", e => {
+      const tag = (e.target.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || e.ctrlKey || e.metaKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      // number keys -> nth visible tab
+      if (/^[1-9]$/.test(k)) {
+        const tabs = [...document.querySelectorAll("#tabs .tab-btn")];
+        const t = tabs[(+k) - 1];
+        if (t) { G.ui.switchTab(t.dataset.tab); e.preventDefault(); }
+        return;
+      }
+      if (k === "c") { G.doCollapse(false); e.preventDefault(); }
+      else if (k === "x") { if (G.canCondense()) G.doCondense(false); e.preventDefault(); }
+      else if (k === "m") {
+        const order = [1, 10, "max"];
+        const i = order.indexOf(G.state.buyMode);
+        G.state.buyMode = order[(i + 1) % order.length];
+        e.preventDefault();
+      }
+    });
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
